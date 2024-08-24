@@ -1,12 +1,15 @@
 
+Debug/
+
 PHYTEC_Tools/*
 !PHYTEC_Tools/prj_workspace/
 PHYTEC_Tools/prj_workspace/*
 !PHYTEC_Tools/prj_workspace/Eclipse
 PHYTEC_Tools/prj_workspace/Eclipse/*
 !PHYTEC_Tools/prj_workspace/Eclipse/PhyCanSendReceive 
-PHYTEC_Tools/prj_workspace/Eclipse/PhyCanSendReceive/*
-!PHYTEC_Tools/prj_workspace/Eclipse/PhyCanSendReceive/PhyCanSendReceive.c                                                               
+#PHYTEC_Tools/prj_workspace/Eclipse/PhyCanSendReceive/*
+#!PHYTEC_Tools/prj_workspace/Eclipse/PhyCanSendReceive/PhyCanSendReceive.c
+PHYTEC_Tools/prj_workspace/Eclipse/PhyCanSendReceive/.*                                                        
 
 SabreLite_Tools/*
 !SabreLite_Tools/prj_workspace/
@@ -14,6 +17,8 @@ SabreLite_Tools/prj_workspace/*
 !SabreLite_Tools/prj_workspace/Eclipse
 SabreLite_Tools/prj_workspace/Eclipse/*
 !SabreLite_Tools/prj_workspace/Eclipse/SabCanSendReceive 
-SabreLite_Tools/prj_workspace/Eclipse/SabCanSendReceive/*
-!SabreLite_Tools/prj_workspace/Eclipse/SabCanSendReceive/SabCanSendReceive.c                                                               
-
+#SabreLite_Tools/prj_workspace/Eclipse/SabCanSendReceive/*
+#!SabreLite_Tools/prj_workspace/Eclipse/SabCanSendReceive/SabCanSendReceive.c   
+SabreLite_Tools/prj_workspace/Eclipse/SabCanSendReceive/.*
+ 
+*.swp
