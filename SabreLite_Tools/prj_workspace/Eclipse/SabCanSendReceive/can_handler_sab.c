@@ -77,6 +77,12 @@ int32_t readInt32(CanHandler* ch)
 	return *(int32_t*)ch->inOutCanFrame.data;
 }
 
+double readDouble(CanHandler* ch)
+{
+	readCan(ch);
+	return *(double*)ch->inOutCanFrame.data;
+}
+
 ssize_t readCan(CanHandler* ch)
 {
 	return read(ch->canSocket, &ch->inOutCanFrame, sizeof(struct can_frame));
@@ -98,21 +104,22 @@ int readSeries(CanHandler* ch, int32_t left2Receive)
 {
 	int32_t i;
 
-	for (i = left2Receive; i > 1; i--)
+	for (i = left2Receive; i > 0; i--)
 	{
 		poll(ch->ufds, 1, WAIT_MS); // can removed only readCan suffices
 		if (ch->ufds[0].revents & POLLIN)
 		{
-//			readCan(ch);
+			readCan(ch);
 			left2Receive--;
 		}
 	}
-	poll(ch->ufds, 1, WAIT_MS);
-	if (ch->ufds[0].revents & POLLIN)
-	{
-		readCan(ch);
-		left2Receive--;
-	}
+	// What is the below for? - it was when above was left2Receive > 1 (not > 0)
+//	poll(ch->ufds, 1, WAIT_MS);
+//	if (ch->ufds[0].revents & POLLIN)
+//	{
+//		readCan(ch);
+//		left2Receive--;
+//	}
 	printf("Last frame id: %d\n", ch->inOutCanFrame.can_id);
 
 	if (left2Receive)
@@ -140,6 +147,20 @@ ssize_t readNSend(CanHandler* ch)
 	}
 	printf("No incoming frame before timeout\n");
 	return -1;
+}
+
+void sendInt32(CanHandler* ch, int32_t data_in)
+{
+	ch->inOutCanFrame.can_dlc = 4;
+	*(int32_t*)ch->inOutCanFrame.data = data_in;
+	canWrite(ch);
+}
+
+void sendDouble(CanHandler* ch, double data_in)
+{
+	ch->inOutCanFrame.can_dlc = 8;
+	*(double*)ch->inOutCanFrame.data = data_in;
+	canWrite(ch);
 }
 
 ssize_t canWrite(CanHandler* ch)

@@ -27,19 +27,17 @@ typedef struct CanHandler_
 } CanHandler;
 
 int initCanHandler(CanHandler* ch);
-
 void closeCanHandler(CanHandler* ch);
-
 int canConfig();
 
 int32_t readInt32(CanHandler* ch);
-
+double readDouble(CanHandler* ch);
 ssize_t readCan(CanHandler* ch);
-
 int readSeries(CanHandler* ch, int32_t left2Receive);
-
 ssize_t readNSend(CanHandler* ch);
 
+void sendInt32(CanHandler* ch, int32_t data_in);
+void sendDouble(CanHandler* ch, double data_in);
 ssize_t canWrite(CanHandler* ch);
 
 #endif /* CAN_HANDLER_SAB_H_ */

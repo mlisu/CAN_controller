@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdint.h> //byte type (e.g. int8_t)
 
+#include "simulation.h"
+
 int echo4sendNReceiveTime(CanHandler* ch)
 {
 	int32_t it_cnt = readInt32(ch);
@@ -35,4 +37,45 @@ int readSeries4CapacityMeasurement(CanHandler* ch)
 
 	return 0;
 }
+
+int runInertiaSimulation(CanHandler* ch)
+{
+//	int missed_number = 0;
+	int i;
+	int idx = 1;
+	double ctrl_signal = 0;
+
+	FileHandler fh;
+	initFileHandler(&fh);
+
+	sendInt32(ch, STIME);
+	sendDouble(ch, INIT_STATE); //check if 2 frames will be reveived after being
+								// sent so without interval break
+
+	while (idx < SIM_DATA_VEC_LEN)
+	{
+		poll(ch->ufds, 1, WAIT_MS);
+		if (ch->ufds[0].revents & POLLIN)
+		{
+			ctrl_signal = readDouble(ch);
+		}
+//		ctrl_signal = controllerOutput(fh.data_vec[idx-1]);
+		for (i = 0; i < CTR_SYS_RATIO; i++)
+		{
+			fh.data_vec[idx] = inertiaOutput(ctrl_signal);
+			idx++;
+		}
+
+		sendDouble(ch, fh.data_vec[idx - 1]);
+	}
+
+	simDataToFile(&fh);
+
+	return 0;
+}
+
+
+
+
+
 

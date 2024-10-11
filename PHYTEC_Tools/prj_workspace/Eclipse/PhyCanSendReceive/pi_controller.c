@@ -7,11 +7,11 @@ double controllerOutput(double input)
 
 	double const err = OUT_REF - input;
 
-	integral += KI* TS/2*(err + err_prev);
+	integral += KCI* TC/2*(err + err_prev);
 
 	err_prev = err;
 
-	return KP*err + integral;
+	return KCP*err + integral;
 }
 
 

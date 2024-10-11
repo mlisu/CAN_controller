@@ -11,6 +11,7 @@
 #define NANO_IN_SEC			1000000000
 #define CANBUS				"can0"
 #define WAIT_MS				300
+#define WAIT_MS_FIRST		10000 // 10s - time to start program on another board
 //#define STD_IN_CHARS_CNT	10
 
 typedef struct CanHandler_
@@ -27,31 +28,24 @@ typedef struct CanHandler_
 } CanHandler;
 
 int initCanHandler(CanHandler* ch);
-
 void closeCanHandler(CanHandler* ch);
-
 int canConfig();
 
 ssize_t readCan(CanHandler* ch);
-
+int32_t readInt32(CanHandler* ch);
 double readDouble(CanHandler* ch);
-
-void sendInt32(CanHandler* ch, int32_t data_in);
-
-void sendDouble(CanHandler* ch, double data_in);
+//ssize_t waitNRead(CanHandler* ch, int wait_ms);
 
 //void setFrame(CanHandler* ch, uint32_t id, uint8_t dlc, uint8_t* data);
-
+void sendInt32(CanHandler* ch, int32_t data_in);
+void sendDouble(CanHandler* ch, double data_in);
 ssize_t canWrite(CanHandler* ch);
-
 ssize_t sendNReceive(CanHandler* ch);
-
 void sendSeries(CanHandler* ch, int32_t it_cnt);
 
 uint32_t calcExecTime(CanHandler* ch,
 					  ssize_t (*fn)(CanHandler*),
 					  int32_t it_cnt);
-
 int64_t execTime_count( struct timespec * timeStartPtr, struct timespec * timeStopPtr);
 
 #endif /* CAN_HANDLER_H_ */

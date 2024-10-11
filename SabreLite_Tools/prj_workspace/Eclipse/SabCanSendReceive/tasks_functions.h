@@ -7,4 +7,6 @@ int echo4sendNReceiveTime(CanHandler* ch);
 
 int readSeries4CapacityMeasurement(CanHandler* ch);
 
+int runInertiaSimulation(CanHandler* ch);
+
 #endif /* TASKS_FUNCTIONS_H_ */

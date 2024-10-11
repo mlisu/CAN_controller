@@ -66,6 +66,12 @@ ssize_t readCan(CanHandler* ch)
 	return read(ch->canSocket, &ch->inOutCanFrame, sizeof(struct can_frame));
 }
 
+int32_t readInt32(CanHandler* ch)
+{
+	readCan(ch);
+	return *(int32_t*)ch->inOutCanFrame.data;
+}
+
 double readDouble(CanHandler* ch)
 {
 	readCan(ch);
@@ -81,6 +87,18 @@ double readDouble(CanHandler* ch)
 //				ch->inOutCanFrame.data[7]);
 	return *(double*)ch->inOutCanFrame.data;
 }
+
+//ssize_t waitNRead(CanHandler* ch, int wait_ms)
+//{
+//	poll(ch->ufds, 1, wait_ms);
+//	if (ch->ufds[0].revents & POLLIN)
+//	{
+//		readCan(ch);
+//		return 0;
+//	}
+//	printf("waitNRead timed out!\n");
+//	return -1;
+//}
 
 void sendInt32(CanHandler* ch, int32_t data_in)
 {
@@ -169,14 +187,14 @@ uint32_t calcExecTime(CanHandler* ch,
 		return 0;
 	}
 //	usleep(time_itv_ms * 1000);
-
+	// maybe better run all iteration and after loop divide total time by iteration number
 	for (i = 0; i < it_cnt; i++)
 	{
 		clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
 		if (fn(ch) == -1)
 		{
 			printf("\nTime calculation failed!\n");
-			return 0;
+			return 0; // alternatively return negative number and give output by argument pointer
 		}
 		clock_gettime(CLOCK_MONOTONIC, &timeStampNew);
 		//optionally add dividing after couple iterations to avoid overflow
