@@ -9,6 +9,8 @@ int sendNReceiveTime(CanHandler* ch, int32_t it_cnt);
 
 void sendSeries4CapacityMeasurement(CanHandler* ch, int32_t it_cnt);
 
+void sendPeriodically(CanHandler* ch);
+
 void controlInertia(CanHandler* ch);
 
 #endif /* TASKS_FUNCTIONS_H_ */

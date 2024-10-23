@@ -53,5 +53,7 @@ void simDataToFile(FileHandler* const fh);
 
 double inertiaOutput(double input);
 
+void computOutputBetweenCtrlSignals(FileHandler* fh, int* idx, double ctrl_signal);
+
 
 #endif /* SIMULATION_H_ */

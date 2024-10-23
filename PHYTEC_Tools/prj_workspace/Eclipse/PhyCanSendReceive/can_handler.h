@@ -16,7 +16,7 @@
 
 typedef struct CanHandler_
 {
-	struct pollfd ufds[2]; //2 bo jeszcze dla stdio
+	struct pollfd ufds[3]; //3 bo jeszcze dla timera i stdio
 
 	int canSocket;
 

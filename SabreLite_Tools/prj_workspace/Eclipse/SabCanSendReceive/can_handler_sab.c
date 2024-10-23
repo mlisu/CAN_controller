@@ -64,16 +64,6 @@ int canConfig()
 int32_t readInt32(CanHandler* ch)
 {
 	readCan(ch);
-//	printf("dlc: %d\n", ch->inOutCanFrame.can_dlc);
-//	printf("data: 0: %d\t1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\n",
-//				ch->inOutCanFrame.data[0],
-//				ch->inOutCanFrame.data[1],
-//				ch->inOutCanFrame.data[2],
-//				ch->inOutCanFrame.data[3],
-//				ch->inOutCanFrame.data[4],
-//				ch->inOutCanFrame.data[5],
-//				ch->inOutCanFrame.data[6],
-//				ch->inOutCanFrame.data[7]);
 	return *(int32_t*)ch->inOutCanFrame.data;
 }
 
@@ -88,43 +78,47 @@ ssize_t readCan(CanHandler* ch)
 	return read(ch->canSocket, &ch->inOutCanFrame, sizeof(struct can_frame));
 }
 
-//void numberFromBytes(CanHandler* ch, char n, unsigned char* number)
-//{
-//	// zamiast n mogłoby być nic i używać ch->dlc ale jak jest n to można
-//	// podawać argument jako siezeof(var) - co jest bezpieczniejsze
-//	int i;
-//
-//	for (i = 0; i < n; i++)
-//	{
-//		number[i] = ch->inOutCanFrame.data[i];
-//	}
-//}
-
-int readSeries(CanHandler* ch, int32_t left2Receive)
+int readSeries(CanHandler* ch, int32_t cnt)
 {
 	int32_t i;
+	int32_t left2receive = cnt;
 
-	for (i = left2Receive; i > 0; i--)
+//	for (i = left2Receive; i > 0; i--)
+//	{
+//		poll(ch->ufds, 1, WAIT_MS); // can removed only readCan suffices?
+//		if (ch->ufds[0].revents & POLLIN)
+//		{
+//			readCan(ch);
+//			left2Receive--;
+//		}
+//	}
+//
+//	printf("Last frame id: %d\n", ch->inOutCanFrame.can_id);
+//
+//	if (left2Receive)
+//	{
+//		printf("Missed %u frame(s) from series!\n", left2Receive);
+//		return -1;
+//	}
+	for (i = 0; i < cnt; i++)
 	{
-		poll(ch->ufds, 1, WAIT_MS); // can removed only readCan suffices
+		poll(ch->ufds, 1, WAIT_MS); // can removed only readCan suffices?
 		if (ch->ufds[0].revents & POLLIN)
 		{
 			readCan(ch);
-			left2Receive--;
+			printf("%d Frame id: %d\n", i, ch->inOutCanFrame.can_id);
+			if (ch->inOutCanFrame.can_id != i)
+			{
+				printf("Wrong frames order!\n");
+				return -1;
+			}
+			left2receive--;
 		}
 	}
-	// What is the below for? - it was when above was left2Receive > 1 (not > 0)
-//	poll(ch->ufds, 1, WAIT_MS);
-//	if (ch->ufds[0].revents & POLLIN)
-//	{
-//		readCan(ch);
-//		left2Receive--;
-//	}
-	printf("Last frame id: %d\n", ch->inOutCanFrame.can_id);
 
-	if (left2Receive)
+	if (left2receive)
 	{
-		printf("Missed %u frame(s) from series!\n", left2Receive);
+		printf("Missed %u frame(s) from series!\n", left2receive);
 		return -1;
 	}
 
@@ -137,11 +131,6 @@ ssize_t readNSend(CanHandler* ch)
 	if (ch->ufds[0].revents & POLLIN)
 	{
 		readCan(ch);
-//		if (ch->inOutCanFrame.can_id == 112)
-//		{
-//			printf("the same returned 112\n");
-//		}
-//		ch->inOutCanFrame.can_id = 112;
 		canWrite(ch);
 		return 0;
 	}

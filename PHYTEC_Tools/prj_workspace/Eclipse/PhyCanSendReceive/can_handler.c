@@ -136,7 +136,7 @@ ssize_t sendNReceive(CanHandler* ch)
 	ch->inOutCanFrame.can_id = 111;
 	canWrite(ch);
 
-	poll(ch->ufds, 1, WAIT_MS);
+	poll(ch->ufds, 1, WAIT_MS); // można usunąc
 	if (ch->ufds[0].revents & POLLIN)
 	{
 		readCan(ch);
@@ -164,13 +164,19 @@ void sendSeries(CanHandler* ch, int32_t it_cnt)
 {
 //	size_t i;
 
-	for (; it_cnt > 1; it_cnt--)
+//	for (; it_cnt > 1; it_cnt--)
+//	{
+//		canWrite(ch);
+//	}
+//	ch->inOutCanFrame.can_id = 2;
+	int i;
+	for (i = 0; i < it_cnt; i++)
 	{
+		ch->inOutCanFrame.can_id = i;
 		canWrite(ch);
 	}
-	ch->inOutCanFrame.can_id = 2;
 	printf("can id: %d\n", ch->inOutCanFrame.can_id);
-	canWrite(ch);
+//	canWrite(ch);
 }
 
 uint32_t calcExecTime(CanHandler* ch,
@@ -188,21 +194,22 @@ uint32_t calcExecTime(CanHandler* ch,
 	}
 //	usleep(time_itv_ms * 1000);
 	// maybe better run all iteration and after loop divide total time by iteration number
+	clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
 	for (i = 0; i < it_cnt; i++)
 	{
-		clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
 		if (fn(ch) == -1)
 		{
 			printf("\nTime calculation failed!\n");
 			return 0; // alternatively return negative number and give output by argument pointer
 		}
-		clock_gettime(CLOCK_MONOTONIC, &timeStampNew);
 		//optionally add dividing after couple iterations to avoid overflow
-		acc_time += execTime_count(&timeStampOld, &timeStampNew);
+
 //		usleep(time_itv_ms * 1000);
 //		sleep(1);
 //		printf("%lu: %lld\n", i, execTime_count(&timeStampOld, &timeStampNew));
 	}
+	clock_gettime(CLOCK_MONOTONIC, &timeStampNew);
+	acc_time = execTime_count(&timeStampOld, &timeStampNew);
 
 	return acc_time / it_cnt;
 }
