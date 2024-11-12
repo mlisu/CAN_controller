@@ -47,9 +47,9 @@ int checkFramesBuf(char* buf, int frame_nr)
 	int result = 0;
 	for (i = 0; i <= frame_nr; i++)
 	{
-		if(buf[frame_nr] == 0)
+		if(buf[i] == 0)
 		{
-			printf("Frame nr: %d not received\n", frame_nr);
+			printf("Frame nr: %d not received\n", i);
 			result = -1;
 		}
 	}
@@ -58,6 +58,17 @@ int checkFramesBuf(char* buf, int frame_nr)
 		printf("Received all frames within 10s period\n");
 	}
 	return result;
+}
+
+void printBufSum(char* buf, int frame_nr)
+{
+	int i;
+	int acc = 0;
+	for (i = 0; i <= frame_nr; i++)
+	{
+		acc += buf[i];
+	}
+	printf("buf sum: %d\n", acc);
 }
 
 int readPeriodically(CanHandler* ch)
@@ -99,6 +110,11 @@ int readPeriodically(CanHandler* ch)
 				return -1;
 			}
 			buf[frame_nr] = 1;
+//			printBufSum(buf, frame_nr);
+//			if (frame_nr > 0)
+//			{
+//				printf("buf[frame_nr - 1]: %d\n", buf[frame_nr - 1]);
+//			}
 		}
 		if (ch->ufds[1].revents & POLLIN)
 		{
@@ -110,6 +126,7 @@ int readPeriodically(CanHandler* ch)
 			{
 				checkFramesBuf(buf, frame_nr);
 				seconds = 0;
+//				printBufSum(buf, frame_nr);
 				memset(buf, 0, FRAMES_BUF_LEN);
 
 				canWrite(ch); // notify Phy to set frame_nr to zero
