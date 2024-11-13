@@ -11,20 +11,13 @@
 #define NANO_IN_SEC			1000000000
 #define CANBUS				"can0"
 #define WAIT_MS				300
-#define FRAMES_BUF_LEN		110000 // 100 kB
-//#define STD_IN_CHARS_CNT	10
+#define FRAMES_BUF_LEN		110000 // 110 kB
 
 typedef struct CanHandler_
 {
-	struct pollfd ufds[3]; //3 bo jeszcze dla timera i stdio
-
+	struct pollfd ufds[4]; //4 bo jeszcze dla 2 timerów i stdio
 	int canSocket;
-
 	struct can_frame inOutCanFrame;
-
-	// std input - to quit program
-//	char stdinBuf[STD_IN_CHARS_CNT];
-//	char tempChar;
 } CanHandler;
 
 int initCanHandler(CanHandler* ch);

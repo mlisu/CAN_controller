@@ -1,13 +1,13 @@
 #include "pi_controller.h"
 
-double controllerOutput(double input)
+double controllerOutput(double input, double out_ref)
 {
 	static double err_prev = 0;
 	static double integral = 0;
 
-	double const err = OUT_REF - input;
+	double const err = out_ref - input;
 
-	integral += KCI* TC/2*(err + err_prev);
+	integral += KCI* TC/TCI/2*(err + err_prev);
 
 	err_prev = err;
 

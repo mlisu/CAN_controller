@@ -4,9 +4,10 @@
 #define OUT_REF 5
 #define KCP		10
 #define KCI		0.001
-#define TC		0.025 //s; controller cycle time
+#define TC		0.3		//s; controller cycle time
+#define TCI		1		// integral time constant
 
 
-double controllerOutput(double input);
+double controllerOutput(double input, double out_ref);
 
 #endif /* PI_CONTROLLER_H_ */

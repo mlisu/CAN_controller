@@ -36,17 +36,5 @@ double inertiaOutput(double input)
 	return out;
 }
 
-void computOutputBetweenCtrlSignals(FileHandler* fh, int* idx, double ctrl_signal)
-{
-	int i;
-	for (i = 0; i < CTR_SYS_RATIO; i++)
-	{
-		fh->data_vec[*idx] = inertiaOutput(ctrl_signal);
-		(*idx)++;
-	}
-}
-
-
-
 
 

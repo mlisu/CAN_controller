@@ -25,10 +25,10 @@ int main(int argc, char *argv[])
 //	sendSeries4CapacityMeasurement(&ch, it_cnt);
 
 		// Task 2b - send periodically
-	sendPeriodically(&ch);
+//	sendPeriodically(&ch);
 
 		/* Task 3 - control inertia - run Phy first */
-//	controlInertia(&ch);
+	controlInertia(&ch);
 
 	// close program:
 	closeCanHandler(&ch);

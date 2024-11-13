@@ -30,10 +30,10 @@ int main(int argc, char *argv[])
 	 */
 
 		/* Task 2b Read periodically - run first on Sab*/
-	readPeriodically(&ch);
+//	readPeriodically(&ch);
 
 		/* Task 3 - inertia simulation - run Phy first */
-//	runInertiaSimulation(&ch);
+	runInertiaSimulation(&ch);
 
 	// close program:
 	closeCanHandler(&ch);

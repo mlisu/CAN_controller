@@ -100,29 +100,39 @@ void sendPeriodically(CanHandler* ch)
 			memset(stdin_buf, 0, 20);
 			printf("Frequency set to: %d\n", freq);
 			pollTimer_set(NANO_IN_SEC / freq, NANO_IN_SEC / freq, ch->ufds);
+			memset(stdin_buf, 0, 20);
 		}
 	}
 }
 
 void controlInertia(CanHandler* ch)
 {
-	int sim_time = 0;
-	int signals2send = 0;
+	char stdin_buf[20] = {0}; // move stdin stuff to some fn, vars maybe to can handler
+	char temp_char;
+	double const out_ref = 5;
 
-	sim_time = readInt32(ch); // blocking
-	signals2send = sim_time / TC - 1; /* Send signal after each TC seconds of simulation, besides at
-										 the end of simulation. First signal is sent after TC seconds
-										 from simulation begin (==0s) and last TC before end of simulation.
-									  	 - check rounding thing; */
+	ch->ufds[2].fd = STDIN_FILENO;
+	ch->ufds[2].events = POLLIN;
 
-	for (;signals2send > 0; signals2send--)
+	while (1)
 	{
-		poll(ch->ufds, 1, WAIT_MS);
+		poll(ch->ufds, 3, -1);
 		if (ch->ufds[0].revents & POLLIN)
 		{
-			sendDouble(ch, controllerOutput(readDouble(ch)));
+			sendDouble(ch, controllerOutput(readDouble(ch), out_ref));
+		}
+		if (ch->ufds[2].revents & POLLIN)
+		{
+			scanf("%[^\n]", stdin_buf);
+			scanf("%c", &temp_char);
+			if (*stdin_buf == 'q')
+			{
+				break;
+			}
+			memset(stdin_buf, 0, 20);
 		}
 	}
+
 }
 
 

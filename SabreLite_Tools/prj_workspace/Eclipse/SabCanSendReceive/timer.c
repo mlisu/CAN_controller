@@ -1,20 +1,23 @@
 #include "timer.h"
 
 
-int pollTimer_config(struct pollfd * ufds)
+int pollTimer_config(struct pollfd * ufds, int ufds_idx)
 {
         int tfd;
 
         if ((tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK )) < 0)
                 perror("timerfd create error");
 
-        ufds[TIMER_UFDS_IDX].fd = tfd;
-        ufds[TIMER_UFDS_IDX].events = POLLIN;
+        ufds[ufds_idx].fd = tfd;
+        ufds[ufds_idx].events = POLLIN;
 
         return 0;
 }
 
-int pollTimer_set(const long long tValueNs, const long long tIntervalNs, struct pollfd * ufds)
+int pollTimer_set(const long long tValueNs,
+				  const long long tIntervalNs,
+				  struct pollfd * ufds,
+				  int ufds_idx)
 {
         struct itimerspec newValue;
         long tValue_sec, tValue_nsec, tInterval_sec, tInterval_nsec;
@@ -29,7 +32,7 @@ int pollTimer_set(const long long tValueNs, const long long tIntervalNs, struct 
         newValue.it_interval.tv_sec=tInterval_sec;
         newValue.it_interval.tv_nsec=tInterval_nsec;
 
-        if( timerfd_settime(ufds[TIMER_UFDS_IDX].fd,0,&newValue,NULL) <0)
+        if( timerfd_settime(ufds[ufds_idx].fd,0,&newValue,NULL) <0)
         {
                 perror("settime error");
         }

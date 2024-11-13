@@ -95,8 +95,6 @@ void emptyCanBuffer(CanHandler* ch)
 
 int readPeriodically(CanHandler* ch)
 {
-	int period_passed = 0;
-
 	int const receiving_period = 5; // seconds
 	int seconds = 0;
 
@@ -114,8 +112,8 @@ int readPeriodically(CanHandler* ch)
 	}
 
 	long long int expTmp;
-	pollTimer_config(ch->ufds);
-	pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds);
+	pollTimer_config(ch->ufds, TIMER_UFDS_IDX1);
+	pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_UFDS_IDX1);
 
 	ch->ufds[2].fd = STDIN_FILENO;
 	ch->ufds[2].events = POLLIN;
@@ -128,11 +126,7 @@ int readPeriodically(CanHandler* ch)
 		{
 			frames_in_sec++;
 			frame_nr = readInt32(ch);
-//			if (period_passed == 1)
-//			{
-//				printf("First frame nr: %d\n", frame_nr);
-//				period_passed = 0;
-//			}
+
 			if (frame_nr >= FRAMES_BUF_LEN)
 			{
 				printf("Phy has sent too many frames! Aborting\n");
@@ -152,13 +146,12 @@ int readPeriodically(CanHandler* ch)
 				seconds = 0;
 				memset(buf, 0, FRAMES_BUF_LEN);
 
-//				period_passed = 1;
 				canWrite(ch);
 
 				emptyCanBuffer(ch);
 
 				canWrite(ch);
-				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds);
+				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_UFDS_IDX1);
 			}
 		}
 		if (ch->ufds[2].revents & POLLIN)
@@ -169,6 +162,7 @@ int readPeriodically(CanHandler* ch)
 			{
 				break;
 			}
+			memset(stdin_buf, 0, 20);
 		}
 	}
 
@@ -178,34 +172,42 @@ int readPeriodically(CanHandler* ch)
 
 int runInertiaSimulation(CanHandler* ch)
 {
-	int idx = 0;
-	double ctrl_signal = 0;
+	int i = 0;
+	double ctrl_signal = 0.0;
+	double inertia_output = 0.0;
+	long long int expTmp;
 
 	FileHandler fh;
 	initFileHandler(&fh);
 
-	sendInt32(ch, STIME);
-	sendDouble(ch, INIT_STATE);
-	/*
-	  computes CTR_SYS_RATIO times, so first at the moment of simulation start
-	  (==0s) and then "after each T seconds" until
-	  sim time <= (CTR_SYS_RATIO - 1) * T. After that, next computation is
-	  being done in the while loop, beginning from CTR_SYS_RATIO * T seconds
-	  (having already input from controller)
-	*/
-	computOutputBetweenCtrlSignals(&fh, &idx, ctrl_signal);
+	pollTimer_config(ch->ufds, TIMER_UFDS_IDX1);
+	pollTimer_set(T*NANO_IN_SEC, T*NANO_IN_SEC, ch->ufds, TIMER_UFDS_IDX1);
 
-	while (idx < SIM_DATA_VEC_LEN)
+	pollTimer_config(ch->ufds, TIMER_UFDS_IDX2);
+	pollTimer_set(TSEN*NANO_IN_MS, TSEN*NANO_IN_MS, ch->ufds, TIMER_UFDS_IDX2);
+
+	for (i = 1; i < SIM_DATA_VEC_LEN;) // starts from 1, since zero data is already there
 	{
-		poll(ch->ufds, 1, WAIT_MS);
-		if (ch->ufds[0].revents & POLLIN)
+		poll(ch->ufds, 4, -1);
+
+		if (ch->ufds[0].revents & POLLIN) // can control signal came
 		{
 			ctrl_signal = readDouble(ch);
 		}
-
-		computOutputBetweenCtrlSignals(&fh, &idx, ctrl_signal);
-
-		sendDouble(ch, fh.data_vec[idx - 1]);
+		if (ch->ufds[1].revents & POLLIN) // inertia state actualization timer tick
+		{
+			read(ch->ufds[1].fd, &expTmp, sizeof(long long int));
+			inertia_output = inertiaOutput(ctrl_signal);
+			printf("output: %f\tctrl signal: %f\n", inertia_output, ctrl_signal);
+			fh.data_vec[i++] = inertia_output;
+//			printf("Inertia state timer\n");
+		}
+		if (ch->ufds[3].revents & POLLIN) // sensor timer tick
+		{
+			read(ch->ufds[3].fd, &expTmp, sizeof(long long int));
+			sendDouble(ch, inertia_output);
+//			printf("Sensor timer\n");
+		}
 	}
 
 	simDataToFile(&fh);
