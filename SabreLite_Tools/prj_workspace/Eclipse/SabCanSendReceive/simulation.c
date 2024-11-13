@@ -11,7 +11,6 @@ void initFileHandler(FileHandler* const fh)
 		printf("Could not open a file, exiting\n");
 		exit(1);
 	}
-//	memset(fh->data_vec, 0, sizeof(fh->data_vec));
 	fh->data_vec[0] = INIT_STATE;
 }
 
@@ -29,14 +28,10 @@ void simDataToFile(FileHandler* const fh)
 
 double inertiaOutput(double input)
 {
-	/* Move this comment elsewhere
-	First inertia should be called because there could be initial state != 0
-	and controller should not make assumption that the state is 0
-	*/
 	static double const alf = exp(-T/TS);
 	static double out = 0;
 
-	out = KS*input*(1-alf) + alf*out; // possibly implement with initial condition
+	out = KS*input*(1-alf) + alf*out;
 
 	return out;
 }

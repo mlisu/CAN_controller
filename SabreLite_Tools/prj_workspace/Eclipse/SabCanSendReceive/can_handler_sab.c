@@ -83,23 +83,6 @@ int readSeries(CanHandler* ch, int32_t cnt)
 	int32_t i;
 	int32_t left2receive = cnt;
 
-//	for (i = left2Receive; i > 0; i--)
-//	{
-//		poll(ch->ufds, 1, WAIT_MS); // can removed only readCan suffices?
-//		if (ch->ufds[0].revents & POLLIN)
-//		{
-//			readCan(ch);
-//			left2Receive--;
-//		}
-//	}
-//
-//	printf("Last frame id: %d\n", ch->inOutCanFrame.can_id);
-//
-//	if (left2Receive)
-//	{
-//		printf("Missed %u frame(s) from series!\n", left2Receive);
-//		return -1;
-//	}
 	for (i = 0; i < cnt; i++)
 	{
 		poll(ch->ufds, 1, WAIT_MS); // can removed only readCan suffices?

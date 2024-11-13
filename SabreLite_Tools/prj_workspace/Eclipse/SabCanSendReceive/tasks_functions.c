@@ -17,7 +17,6 @@ int echo4sendNReceiveTime(CanHandler* ch)
 
 	for (; it_cnt > 0; it_cnt--)
 	{
-//		printf("it_cnt in echo: %d\n", it_cnt);
 		if (readNSend(ch) == -1)
 		{
 			return -1;
@@ -49,7 +48,7 @@ int checkFramesBuf(char* buf, int frame_nr)
 	{
 		if(buf[i] == 0)
 		{
-			printf("Frame nr: %d not received\n", i);
+//			printf("Frame nr: %d not received\n", i);
 			result = -1;
 		}
 	}
@@ -57,9 +56,14 @@ int checkFramesBuf(char* buf, int frame_nr)
 	{
 		printf("Received all frames within 10s period\n");
 	}
+	else
+	{
+		printf("Missed some frames with id <= frame_nr\n");
+	}
 	return result;
 }
 
+// Helper function for debugging - to remove
 void printBufSum(char* buf, int frame_nr)
 {
 	int i;
@@ -71,9 +75,29 @@ void printBufSum(char* buf, int frame_nr)
 	printf("buf sum: %d\n", acc);
 }
 
+void emptyCanBuffer(CanHandler* ch)
+{
+	/*
+	 * Assumption that if WAIT_MS == 300 ms has passed without receiving a frame,
+	 * then the can buffer is empty
+	 */
+	while (1)
+	{
+		poll(ch->ufds, 3, WAIT_MS);
+		if (ch->ufds[0].revents & POLLIN)
+		{
+			printf("Clear buffer frame nr: %d\n", readInt32(ch));
+			continue;
+		}
+		break;
+	}
+}
+
 int readPeriodically(CanHandler* ch)
 {
-	int const receiving_period = 10; // seconds
+	int period_passed = 0;
+
+	int const receiving_period = 5; // seconds
 	int seconds = 0;
 
 	char stdin_buf[20] = {0};
@@ -104,17 +128,17 @@ int readPeriodically(CanHandler* ch)
 		{
 			frames_in_sec++;
 			frame_nr = readInt32(ch);
+//			if (period_passed == 1)
+//			{
+//				printf("First frame nr: %d\n", frame_nr);
+//				period_passed = 0;
+//			}
 			if (frame_nr >= FRAMES_BUF_LEN)
 			{
 				printf("Phy has sent too many frames! Aborting\n");
 				return -1;
 			}
 			buf[frame_nr] = 1;
-//			printBufSum(buf, frame_nr);
-//			if (frame_nr > 0)
-//			{
-//				printf("buf[frame_nr - 1]: %d\n", buf[frame_nr - 1]);
-//			}
 		}
 		if (ch->ufds[1].revents & POLLIN)
 		{
@@ -126,10 +150,15 @@ int readPeriodically(CanHandler* ch)
 			{
 				checkFramesBuf(buf, frame_nr);
 				seconds = 0;
-//				printBufSum(buf, frame_nr);
 				memset(buf, 0, FRAMES_BUF_LEN);
 
-				canWrite(ch); // notify Phy to set frame_nr to zero
+//				period_passed = 1;
+				canWrite(ch);
+
+				emptyCanBuffer(ch);
+
+				canWrite(ch);
+				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds);
 			}
 		}
 		if (ch->ufds[2].revents & POLLIN)
@@ -149,7 +178,6 @@ int readPeriodically(CanHandler* ch)
 
 int runInertiaSimulation(CanHandler* ch)
 {
-//	int missed_number = 0;
 	int idx = 0;
 	double ctrl_signal = 0;
 
@@ -157,9 +185,7 @@ int runInertiaSimulation(CanHandler* ch)
 	initFileHandler(&fh);
 
 	sendInt32(ch, STIME);
-	sendDouble(ch, INIT_STATE); //check if 2 frames will be received after being
-								// sent so without interval break
-
+	sendDouble(ch, INIT_STATE);
 	/*
 	  computes CTR_SYS_RATIO times, so first at the moment of simulation start
 	  (==0s) and then "after each T seconds" until
@@ -171,12 +197,6 @@ int runInertiaSimulation(CanHandler* ch)
 
 	while (idx < SIM_DATA_VEC_LEN)
 	{
-//		for (i = 0; i < CTR_SYS_RATIO; i++)
-//		{
-//			fh.data_vec[idx] = inertiaOutput(ctrl_signal);
-//			idx++;
-//		}
-
 		poll(ch->ufds, 1, WAIT_MS);
 		if (ch->ufds[0].revents & POLLIN)
 		{

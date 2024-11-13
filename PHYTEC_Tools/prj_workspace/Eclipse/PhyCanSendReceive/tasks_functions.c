@@ -20,6 +20,16 @@ int sendNReceiveTime(CanHandler* ch, int32_t it_cnt)
 
 	sendInt32(ch, it_cnt + 1); //+1 for cache warm up
 
+	/*
+		Poniżej podaje liczbę iteracji == it_cnt ale funkcja calcExecTime wykonuje
+		ją it_cnt + 1 razy - zobacz opis w funkcji calcExecTime. Jest to po to
+		żeby odrzucić w pomiarze czas pierwszego wykonania (obczaiłem na necie
+		że wykonywanie pierwszy raz bez mierzenia nazywa się "cache warmup".
+		Czas tego pierwszego wykonania jest znacznie dłuższy od pozostałych czasów.
+
+		Czyli w sumie wykonuje mierzoną funkcję it_cnt + 1 razy, a Sabre odczyta cana
+		też it_cnt + 1 bo powyżej wysyłam mu it_cnt + 1 jako liczbę iteracji.
+	*/
 	execTime = calcExecTime(ch, sendNReceive, it_cnt);
 	if (execTime == 0)
 	{
@@ -66,13 +76,16 @@ void sendPeriodically(CanHandler* ch)
 		if (ch->ufds[1].revents & POLLIN)
 		{
 			read(ch->ufds[1].fd, &expTmp, sizeof(long long int));
-//			printf("frame_nr: %d\n", frame_nr);
 			sendInt32(ch, frame_nr++);
 		}
 		if (ch->ufds[0].revents & POLLIN)
 		{
-			readCan(ch);
+//			printf("%d\n", readInt32(ch));
+			readCan(ch); // Sabre told to stop sending
 			frame_nr = 0;
+//			printf("%d\n", readInt32(ch));
+			readCan(ch); // Sabre told that it cleaned the can buffer
+
 		}
 		if (ch->ufds[2].revents & POLLIN)
 		{
@@ -93,17 +106,9 @@ void sendPeriodically(CanHandler* ch)
 
 void controlInertia(CanHandler* ch)
 {
-//	ch->inOutCanFrame.can_dlc = 8;
-//	memset(ch->inOutCanFrame.data, 0, sizeof(ch->inOutCanFrame.data));
 	int sim_time = 0;
 	int signals2send = 0;
 
-//	poll(ch->ufds, 1, WAIT_MS_FIRST);
-//	if (!(ch->ufds[0].revents & POLLIN))
-//	{
-//		printf("Phytec hasn't received simulation time!\n");
-//		exit(1);
-//	}
 	sim_time = readInt32(ch); // blocking
 	signals2send = sim_time / TC - 1; /* Send signal after each TC seconds of simulation, besides at
 										 the end of simulation. First signal is sent after TC seconds

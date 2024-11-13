@@ -34,9 +34,7 @@ int canConfig();
 ssize_t readCan(CanHandler* ch);
 int32_t readInt32(CanHandler* ch);
 double readDouble(CanHandler* ch);
-//ssize_t waitNRead(CanHandler* ch, int wait_ms);
 
-//void setFrame(CanHandler* ch, uint32_t id, uint8_t dlc, uint8_t* data);
 void sendInt32(CanHandler* ch, int32_t data_in);
 void sendDouble(CanHandler* ch, double data_in);
 ssize_t canWrite(CanHandler* ch);
