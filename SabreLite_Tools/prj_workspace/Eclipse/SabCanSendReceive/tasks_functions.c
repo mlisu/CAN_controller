@@ -152,7 +152,7 @@ int readPeriodically(CanHandler* ch)
 				seconds = 0;
 				memset(buf, 0, FRAMES_BUF_LEN);
 
-//				period_passed = 1;
+//				period_passed = 1;//
 				canWrite(ch);
 
 				emptyCanBuffer(ch);
