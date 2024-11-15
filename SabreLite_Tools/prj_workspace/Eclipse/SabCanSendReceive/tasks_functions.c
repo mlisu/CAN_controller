@@ -186,6 +186,8 @@ int runInertiaSimulation(CanHandler* ch)
 	pollTimer_config(ch->ufds, TIMER_UFDS_IDX2);
 	pollTimer_set(TSEN*NANO_IN_MS, TSEN*NANO_IN_MS, ch->ufds, TIMER_UFDS_IDX2);
 
+	printf("sim data vec len: %d\n", SIM_DATA_VEC_LEN);
+
 	for (i = 1; i < SIM_DATA_VEC_LEN;) // starts from 1, since zero data is already there
 	{
 		poll(ch->ufds, 4, -1);
@@ -198,7 +200,7 @@ int runInertiaSimulation(CanHandler* ch)
 		{
 			read(ch->ufds[1].fd, &expTmp, sizeof(long long int));
 			inertia_output = inertiaOutput(ctrl_signal);
-			printf("output: %f\tctrl signal: %f\n", inertia_output, ctrl_signal);
+			printf("i: %d\toutput: %f\tctrl signal: %f\n", i, inertia_output, ctrl_signal);
 			fh.data_vec[i++] = inertia_output;
 //			printf("Inertia state timer\n");
 		}

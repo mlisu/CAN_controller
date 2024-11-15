@@ -37,7 +37,7 @@
 //#define CTR_SYS_RATIO			5 // ((int)(TC/T)) <- if this, then TC should be sent to Sabre first and this ratio should a variable assigned to with TC afterwards
 #define OUT_FILE_NAME			"system_response.csv"
 // inertia parameters:
-#define TS         1		// s; inertia system time constant
+#define TS         5		// s; inertia system time constant
 #define KS         1		// gain of the inertia system
 #define T          0.030	// s, inertia state actualization period - 30 ms
 #define TSEN	   300		// ms, inertia state measurement period
