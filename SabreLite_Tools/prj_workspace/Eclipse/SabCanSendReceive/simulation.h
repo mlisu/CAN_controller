@@ -25,6 +25,8 @@
   There could be more data write ops and bufs overwriting during runtime, which allows longer sim time.
 */
 #include <stdio.h>
+#include <gsl/gsl_odeiv2.h>
+#include <gsl/gsl_errno.h>
 
 // simulation parameters:
 #define STIME 					5 //s simulation time, assumed MAX is 50s
@@ -34,8 +36,13 @@
 													 	   */
 #define SIM_DATA_VEC_LEN_MAX	10001
 #define FILE_BUF_LEN     		80009
-//#define CTR_SYS_RATIO			5 // ((int)(TC/T)) <- if this, then TC should be sent to Sabre first and this ratio should a variable assigned to with TC afterwards
 #define OUT_FILE_NAME			"system_response.csv"
+#define X_LEN					4	// vector of state variables length
+#define PARAM_LEN				1	// parameter vector length
+#define OUT_IDX					2	// index of the observed state variable in the state vector (system output)
+#define SIM_STEP				0.300 // 300 ms
+#define SIN_FREQ				3.14/4 	// sinus disturbance frequency
+
 // inertia parameters:
 #define TS         5		// s; inertia system time constant
 #define KS         1		// gain of the inertia system
@@ -43,19 +50,46 @@
 #define TSEN	   300		// ms, inertia state measurement period
 #define INIT_STATE 0		// initial state of the system output
 
+// suspension parameters:
+#define M1 300		// kg
+#define M2 20		// kg
+#define K1 15000	// N/m
+#define K2 200000	// N/m
+#define C1 1000		// N/(m/s)
+#define C2 2500		// N/(m/s)
 
 typedef struct FileHandler_
 {
 	FILE* f;
-	double data_vec[SIM_DATA_VEC_LEN_MAX];
 	char buf[FILE_BUF_LEN];
+
 } FileHandler;
 
-void initFileHandler(FileHandler* const fh);
+typedef struct Simulation_
+{
+	gsl_odeiv2_system sys;
+	gsl_odeiv2_driver* d;
 
-void simDataToFile(FileHandler* const fh);
+	double  t;		// stores current simulation time
+	double  t_end;	// end of simulation step
+	double	dt;		// simulation step
+	double* x;		// vector of state variables
 
-double inertiaOutput(double input);
+	double data_vec[SIM_DATA_VEC_LEN_MAX];
+	FileHandler fh;
 
+} Simulation;
+
+void simDataToFile(Simulation* const sim);
+
+int simModel(double t, const double y[], double dxdt[], void* params);
+
+void initSim(Simulation* const sim,
+		    int (*model)(double, const double[], double[], void*),
+		    int const dimension,
+			double const dt,
+		    double* const params);
+
+int runSim(Simulation* const sim);
 
 #endif /* SIMULATION_H_ */
