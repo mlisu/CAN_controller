@@ -13,9 +13,14 @@
 #define WAIT_MS				300
 #define FRAMES_BUF_LEN		110000 // 110 kB
 
+// file descriptors indices:
+#define TIMER_IDX	0
+#define CAN_IDX		1
+#define IO_IDX		2
+
 typedef struct CanHandler_
 {
-	struct pollfd ufds[4]; //4 bo jeszcze dla 2 timerów i stdio
+	struct pollfd ufds[3];
 	int canSocket;
 	struct can_frame inOutCanFrame;
 } CanHandler;

@@ -11,6 +11,6 @@ void sendSeries4CapacityMeasurement(CanHandler* ch, int32_t it_cnt);
 
 void sendPeriodically(CanHandler* ch);
 
-void controlInertia(CanHandler* ch);
+void control(CanHandler* ch);
 
 #endif /* TASKS_FUNCTIONS_H_ */

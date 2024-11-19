@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 //	readPeriodically(&ch);
 
 		/* Task 3 - inertia simulation - run Phy first */
-	runInertiaSimulation(&ch);
+	runSimulation(&ch);
 
 	// close program:
 	closeCanHandler(&ch);

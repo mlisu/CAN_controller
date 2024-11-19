@@ -5,6 +5,7 @@
 #include <stdint.h> //byte type (e.g. int8_t)
 #include <stdlib.h> //free
 #include <string.h> //memset
+#include <time.h>
 
 #include "simulation.h"
 #include "timer.h"
@@ -75,7 +76,7 @@ void printBufSum(char* buf, int frame_nr)
 	printf("buf sum: %d\n", acc);
 }
 
-void emptyCanBuffer(CanHandler* ch)
+void emptyCanBuffer(CanHandler* ch, int wait_ms)
 {
 	/*
 	 * Assumption that if WAIT_MS == 300 ms has passed without receiving a frame,
@@ -83,8 +84,8 @@ void emptyCanBuffer(CanHandler* ch)
 	 */
 	while (1)
 	{
-		poll(ch->ufds, 3, WAIT_MS);
-		if (ch->ufds[0].revents & POLLIN)
+		poll(ch->ufds, 3, wait_ms);
+		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			printf("Clear buffer frame nr: %d\n", readInt32(ch));
 			continue;
@@ -112,8 +113,8 @@ int readPeriodically(CanHandler* ch)
 	}
 
 	long long int expTmp;
-	pollTimer_config(ch->ufds, TIMER_UFDS_IDX1);
-	pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_UFDS_IDX1);
+	pollTimer_config(ch->ufds, TIMER_IDX);
+	pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
 	ch->ufds[2].fd = STDIN_FILENO;
 	ch->ufds[2].events = POLLIN;
@@ -122,7 +123,7 @@ int readPeriodically(CanHandler* ch)
 	{
 		poll(ch->ufds, 3, -1);
 
-		if (ch->ufds[0].revents & POLLIN)
+		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			frames_in_sec++;
 			frame_nr = readInt32(ch);
@@ -148,10 +149,10 @@ int readPeriodically(CanHandler* ch)
 
 				canWrite(ch);
 
-				emptyCanBuffer(ch);
+				emptyCanBuffer(ch, WAIT_MS);
 
 				canWrite(ch);
-				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_UFDS_IDX1);
+				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_IDX);
 			}
 		}
 		if (ch->ufds[2].revents & POLLIN)
@@ -170,49 +171,77 @@ int readPeriodically(CanHandler* ch)
 	return 0;
 }
 
-int runInertiaSimulation(CanHandler* ch)
+uint64_t ticksToMs(clock_t ticks)
+{
+	return (double)ticks / CLOCKS_PER_SEC * 1000;
+}
+
+int runSimulation(CanHandler* ch)
 {
 	int i = 0;
-	double ctrl_signal = 0.0;
-	double inertia_output = 0.0;
+
 	long long int expTmp;
+	long long int dt_ms;
+	clock_t t;
 
-	FileHandler fh;
-	initFileHandler(&fh);
+	uint32_t can_id = 0;
+	double can_data;
 
-	pollTimer_config(ch->ufds, TIMER_UFDS_IDX1);
-	pollTimer_set(T*NANO_IN_SEC, T*NANO_IN_SEC, ch->ufds, TIMER_UFDS_IDX1);
+	double params[PARAM_LEN] = {0.0}; // ctrl signal
+	Simulation sim;
 
-	pollTimer_config(ch->ufds, TIMER_UFDS_IDX2);
-	pollTimer_set(TSEN*NANO_IN_MS, TSEN*NANO_IN_MS, ch->ufds, TIMER_UFDS_IDX2);
+	srand(time(NULL));
+	initSim(&sim, inertiaModel, X_LEN, SIM_STEP, params);
+//	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, params);
 
-	printf("sim data vec len: %d\n", SIM_DATA_VEC_LEN);
+	pollTimer_config(ch->ufds, TIMER_IDX);
+	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
-	for (i = 1; i < SIM_DATA_VEC_LEN;) // starts from 1, since zero data is already there
+	ch->inOutCanFrame.can_id = can_id;
+
+	for (i = 1; i < SIM_DATA_VEC_LEN; i++) // starts from 1, since zero data is already there
 	{
-		poll(ch->ufds, 4, -1);
+		t = clock();
+		runSim(&sim);
+//		printf("ctrl: %f\n", params[0]);
+//		printf("%f\n", sim.x[OUT_IDX]);
+		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
 
-		if (ch->ufds[0].revents & POLLIN) // can control signal came
+		if (dt_ms < 5)
 		{
-			ctrl_signal = readDouble(ch);
+			printf("Simulation took longer than (SIM_STEP - 5ms)\n");
+			poll(ch->ufds, TIMER_IDX + 1, -1);
+			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
+			continue;
 		}
-		if (ch->ufds[1].revents & POLLIN) // inertia state actualization timer tick
+
+		sendDouble(ch, sim.x[OUT_IDX]);
+		poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.7);
+		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
-			read(ch->ufds[1].fd, &expTmp, sizeof(long long int));
-			inertia_output = inertiaOutput(ctrl_signal);
-			printf("i: %d\toutput: %f\tctrl signal: %f\n", i, inertia_output, ctrl_signal);
-			fh.data_vec[i++] = inertia_output;
-//			printf("Inertia state timer\n");
+			can_data = readDouble(ch);
+			if (ch->inOutCanFrame.can_id == can_id)
+			{
+				params[0] = can_data;
+			}
+			else
+			{
+				emptyCanBuffer(ch, 1); // this possibly disturbs SIM_STEP period adherence
+			}
 		}
-		if (ch->ufds[3].revents & POLLIN) // sensor timer tick
+		else // response over CAN hasn't come in time, set another can id
+			 // to be sent next time for the case that there will be more
+			 // than 1 frame in can buffer
 		{
-			read(ch->ufds[3].fd, &expTmp, sizeof(long long int));
-			sendDouble(ch, inertia_output);
-//			printf("Sensor timer\n");
+			can_id++;
+			ch->inOutCanFrame.can_id = can_id;
 		}
+
+		poll(ch->ufds, TIMER_IDX + 1, -1);
+		tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
 	}
 
-	simDataToFile(&fh);
+	simDataToFile(&sim);
 
 	return 0;
 }

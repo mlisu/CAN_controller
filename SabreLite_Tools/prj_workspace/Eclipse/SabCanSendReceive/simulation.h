@@ -30,16 +30,19 @@
 
 // simulation parameters:
 #define STIME 					5 //s simulation time, assumed MAX is 50s
-#define SIM_DATA_VEC_LEN		((int)(STIME/T + 0.5) + 1) /* assuming STIME/T = 15,78, then we have 16 data point
+#define SIM_DATA_VEC_LEN		((int)(STIME/SIM_STEP + 0.5) + 1) /* assuming STIME/T = 15,78, then we have 16 data point
 															  + 1 for zero data point. Keep some reserve between MAX
 															  and REAL in case of timers inaccuracy
 													 	   */
 #define SIM_DATA_VEC_LEN_MAX	10001
 #define FILE_BUF_LEN     		80009
 #define OUT_FILE_NAME			"system_response.csv"
-#define X_LEN					4	// vector of state variables length
+
+#define X_LEN					1	// vector of state variables length
+									// 1 for inertia, 4 for suspension
 #define PARAM_LEN				1	// parameter vector length
-#define OUT_IDX					2	// index of the observed state variable in the state vector (system output)
+#define OUT_IDX					0	// index of the observed state variable in the state vector (system output)
+									// 0 for inertia, 2 for suspension
 #define SIM_STEP				0.300 // 300 ms
 #define SIN_FREQ				3.14/4 	// sinus disturbance frequency
 
@@ -70,10 +73,10 @@ typedef struct Simulation_
 	gsl_odeiv2_system sys;
 	gsl_odeiv2_driver* d;
 
-	double  t;		// stores current simulation time
-	double  t_end;	// end of simulation step
-	double	dt;		// simulation step
-	double* x;		// vector of state variables
+	double t;		 // stores current simulation time
+	double t_end;	 // end of simulation step
+	double dt;		 // simulation step
+	double x[X_LEN]; // vector of state variables
 
 	double data_vec[SIM_DATA_VEC_LEN_MAX];
 	FileHandler fh;
@@ -82,7 +85,8 @@ typedef struct Simulation_
 
 void simDataToFile(Simulation* const sim);
 
-int simModel(double t, const double y[], double dxdt[], void* params);
+int inertiaModel(double t, const double y[], double dxdt[], void* params);
+int suspensionModel(double t, const double y[], double dxdt[], void* params);
 
 void initSim(Simulation* const sim,
 		    int (*model)(double, const double[], double[], void*),

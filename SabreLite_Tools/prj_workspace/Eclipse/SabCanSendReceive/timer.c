@@ -1,5 +1,5 @@
 #include "timer.h"
-
+#include <unistd.h> //write & read
 
 int pollTimer_config(struct pollfd * ufds, int ufds_idx)
 {
@@ -38,5 +38,13 @@ int pollTimer_set(const long long tValueNs,
         }
 
         return 0;
+}
+
+void tryReadTimer(struct pollfd* ufd, long long int* expTmp)
+{
+	if (ufd->revents & POLLIN)
+	{
+		read(ufd->fd, expTmp, sizeof(long long int));
+	}
 }
 

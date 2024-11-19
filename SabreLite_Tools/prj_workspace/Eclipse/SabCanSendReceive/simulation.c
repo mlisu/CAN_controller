@@ -25,13 +25,16 @@ void simDataToFile(Simulation* const sim)
         fclose(sim->fh.f);
 }
 
-int simModel(double t, const double x[], double dxdt[], void* params)
+int inertiaModel(double t, const double x[], double dxdt[], void* params)
 {
-		// inertia:
-	// double input = ((double*)params)[0];
-	// dxdt[0] = (KS*input -x[0])/TS;
+	double input = *(double*)params;
+	dxdt[0] = (KS*input -x[0])/TS;
 
-		// suspension:
+	return GSL_SUCCESS;
+}
+
+int suspensionModel(double t, const double x[], double dxdt[], void* params)
+{
 	// M1 and z1 are for the mass above
 	double const u   = 0.1*sin(SIN_FREQ * t);
 	double const up  = 0.1*cos(SIN_FREQ * t);
@@ -73,7 +76,7 @@ void initSim(Simulation* const sim,
 		sim->x[i] = 0.0;
 	}
 
-	initFileHandler(&sim->fh, OUT_FILE_NAME);
+	initFileHandler(&sim->fh);
 	sim->data_vec[0] = INIT_STATE;
 }
 

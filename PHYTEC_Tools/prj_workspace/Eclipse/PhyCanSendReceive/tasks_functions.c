@@ -105,7 +105,7 @@ void sendPeriodically(CanHandler* ch)
 	}
 }
 
-void controlInertia(CanHandler* ch)
+void control(CanHandler* ch)
 {
 	char stdin_buf[20] = {0}; // move stdin stuff to some fn, vars maybe to can handler
 	char temp_char;

@@ -15,8 +15,8 @@ int initCanHandler(CanHandler* ch)
 	}
 
 	memset(ch->ufds, 0, sizeof(ch->ufds));
-	ch->ufds[0].fd = ch->canSocket;
-	ch->ufds[0].events = POLLIN;
+	ch->ufds[CAN_IDX].fd = ch->canSocket;
+	ch->ufds[CAN_IDX].events = POLLIN;
 
 	//default can frame:
 	ch->inOutCanFrame.can_id = 111;
@@ -86,7 +86,7 @@ int readSeries(CanHandler* ch, int32_t cnt)
 	for (i = 0; i < cnt; i++)
 	{
 		poll(ch->ufds, 1, WAIT_MS); // can removed only readCan suffices?
-		if (ch->ufds[0].revents & POLLIN)
+		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			readCan(ch);
 			printf("%d Frame id: %d\n", i, ch->inOutCanFrame.can_id);
@@ -111,7 +111,7 @@ int readSeries(CanHandler* ch, int32_t cnt)
 ssize_t readNSend(CanHandler* ch)
 {
 	poll(ch->ufds, 1, WAIT_MS);
-	if (ch->ufds[0].revents & POLLIN)
+	if (ch->ufds[CAN_IDX].revents & POLLIN)
 	{
 		readCan(ch);
 		canWrite(ch);
@@ -139,8 +139,6 @@ ssize_t canWrite(CanHandler* ch)
 {
 	return write(ch->canSocket, &ch->inOutCanFrame, sizeof(ch->inOutCanFrame));
 }
-
-
 
 
 
