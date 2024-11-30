@@ -171,9 +171,9 @@ int readPeriodically(CanHandler* ch)
 	return 0;
 }
 
-uint64_t ticksToMs(clock_t ticks)
+float ticksToMs(clock_t ticks)
 {
-	return (double)ticks / CLOCKS_PER_SEC * 1000;
+	return (float)ticks / CLOCKS_PER_SEC * 1000;
 }
 
 int runSimulation(CanHandler* ch)
@@ -181,66 +181,63 @@ int runSimulation(CanHandler* ch)
 	int i = 0;
 
 	long long int expTmp;
-	long long int dt_ms;
+	float dt_ms;
 	clock_t t;
 
-	uint32_t can_id = 0;
+//	uint32_t can_id = 0;
 	double can_data;
 
+	double f; // disturbance frequency, Hz
 	double params[PARAM_LEN] = {0.0}; // ctrl signal
 	Simulation sim;
+	double t_end;
 
 	srand(time(NULL));
-	initSim(&sim, inertiaModel, X_LEN, SIM_STEP, params);
-//	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, params);
+//	initSim(&sim, inertiaModel, X_LEN, SIM_STEP, params);
+	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, params);
 
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
-	ch->inOutCanFrame.can_id = can_id;
+//	ch->inOutCanFrame.can_id = can_id;
 
-	for (i = 1; i < SIM_DATA_VEC_LEN; i++) // starts from 1, since zero data is already there
+	for (f = 2; f <= 25; f += 0.1) // w jakich jednostkach jest sim.t?
 	{
-		t = clock();
-		runSim(&sim);
-//		printf("ctrl: %f\n", params[0]);
-//		printf("%f\n", sim.x[OUT_IDX]);
-		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
-
-		if (dt_ms < 5)
+		t_end = sim.t + 10/f + 1;
+		params[UF_IDX] = f;
+		while (sim.t < t_end) // maybe move e.g. this to a function so it all looks better
 		{
-			printf("Simulation took longer than (SIM_STEP - 5ms)\n");
-			poll(ch->ufds, TIMER_IDX + 1, -1);
-			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
-			continue;
-		}
-
-		sendDouble(ch, sim.x[OUT_IDX]);
-		poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.7);
-		if (ch->ufds[CAN_IDX].revents & POLLIN)
-		{
-			can_data = readDouble(ch);
-			if (ch->inOutCanFrame.can_id == can_id)
+			t = clock();
+			runSim(&sim);
+			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // possibly use sim.t for this
+			if (dt_ms <= 1) // change this magic number to macro; possibly move to a function
 			{
-				params[0] = can_data;
+				printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
+				return 1;
+			}
+
+			sendDouble(ch, sim.x[OUT_IDX]); // change to sendFloat - all date to be changed to float
+			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.7);
+			if (ch->ufds[CAN_IDX].revents & POLLIN)
+			{
+				params[IN_IDX] = readDouble(ch); // change to readFloat
 			}
 			else
 			{
-				emptyCanBuffer(ch, 1); // this possibly disturbs SIM_STEP period adherence
+				printf("Control signal has not come.\n"); // here recovering can be implemented
+				exit(1);
 			}
-		}
-		else // response over CAN hasn't come in time, set another can id
-			 // to be sent next time for the case that there will be more
-			 // than 1 frame in can buffer
-		{
-			can_id++;
-			ch->inOutCanFrame.can_id = can_id;
-		}
 
-		poll(ch->ufds, TIMER_IDX + 1, -1);
-		tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
+			if (( SIM_STEP * 1000 - ticksToMs(clock() - t) ) < 0.5)
+			{
+				printf("Simulation step took longer than (SIM_STEP - 0.5 ms)\n");
+				return 1;
+			}
+
+			poll(ch->ufds, TIMER_IDX + 1, -1);
+			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
+		}
 	}
-
 	simDataToFile(&sim);
 
 	return 0;

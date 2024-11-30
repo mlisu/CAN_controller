@@ -11,7 +11,7 @@ double controllerOutput(double input, double out_ref)
 
 	err_prev = err;
 
-	return KCP*err + integral;
+	return KCP*(err + integral);
 }
 
 

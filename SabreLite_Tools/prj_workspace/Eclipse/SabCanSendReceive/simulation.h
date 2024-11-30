@@ -34,17 +34,22 @@
 															  + 1 for zero data point. Keep some reserve between MAX
 															  and REAL in case of timers inaccuracy
 													 	   */
-#define SIM_DATA_VEC_LEN_MAX	10001
-#define FILE_BUF_LEN     		80009
+#define SIM_DATA_VEC_LEN_MAX	50000
+//#define FILE_BUF_LEN     		80009
+#define FILE_BUF_LEN     		1 // remove or adapt
 #define OUT_FILE_NAME			"system_response.csv"
 
-#define X_LEN					1	// vector of state variables length
-									// 1 for inertia, 4 for suspension
-#define PARAM_LEN				1	// parameter vector length
-#define OUT_IDX					0	// index of the observed state variable in the state vector (system output)
-									// 0 for inertia, 2 for suspension
-#define SIM_STEP				0.300 // 300 ms
-#define SIN_FREQ				3.14/4 	// sinus disturbance frequency
+#define X_LEN_I					1		// vector of state variables length for inertia
+#define X_LEN_S					4		// for suspension
+#define X_LEN					X_LEN_S
+#define PARAM_LEN				2		// parameter vector length
+#define OUT_IDX					0		// index of the observed state variable in the state vector (system output)
+										// 0 for inertia, 2 for suspension
+#define U_IDX					2		// index of disturbance value in params
+#define UF_IDX					1		// index of disturbance freq in params
+#define IN_IDX					0		// index of system input in params
+#define SIM_STEP				0.010 	// 10 ms
+#define SIN_W					3.14/4 	// rad/s - sinus disturbance angular frequency
 
 // inertia parameters:
 #define TS         5		// s; inertia system time constant
@@ -54,12 +59,12 @@
 #define INIT_STATE 0		// initial state of the system output
 
 // suspension parameters:
-#define M1 300		// kg
-#define M2 20		// kg
-#define K1 15000	// N/m
-#define K2 200000	// N/m
-#define C1 1000		// N/(m/s)
-#define C2 2500		// N/(m/s)
+#define M1 290		// kg		// alternative: 300
+#define M2 59		// kg		// 20
+#define K1 16812	// N/m		// 15000
+#define K2 190000	// N/m		// 200000
+#define C1 1000		// N/(m/s)	// 1000
+#define C2 2500		// N/(m/s)	// 2500
 
 typedef struct FileHandler_
 {
@@ -73,12 +78,16 @@ typedef struct Simulation_
 	gsl_odeiv2_system sys;
 	gsl_odeiv2_driver* d;
 
+	int	   cnt;		 // counter of sim steps
 	double t;		 // stores current simulation time
 	double t_end;	 // end of simulation step
 	double dt;		 // simulation step
 	double x[X_LEN]; // vector of state variables
+	double* params;	 // incoming parameters like disturbance
 
-	double data_vec[SIM_DATA_VEC_LEN_MAX];
+	float* data_vec;
+	float* u_vec;	 // vector for disturbance data
+	float* t_vec;	 // time vector
 	FileHandler fh;
 
 } Simulation;
