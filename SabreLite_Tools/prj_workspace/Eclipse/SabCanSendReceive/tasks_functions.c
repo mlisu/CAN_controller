@@ -201,7 +201,7 @@ int runSimulation(CanHandler* ch)
 
 //	ch->inOutCanFrame.can_id = can_id;
 
-	for (f = 2; f <= 25; f += 0.1) // w jakich jednostkach jest sim.t?
+	for (f = 2; f < 3.01; f += 0.1) // w jakich jednostkach jest sim.t?
 	{
 		t_end = sim.t + 10/f + 1;
 		params[UF_IDX] = f;
@@ -210,17 +210,19 @@ int runSimulation(CanHandler* ch)
 			t = clock();
 			runSim(&sim);
 			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // possibly use sim.t for this
+			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
 			if (dt_ms <= 1) // change this magic number to macro; possibly move to a function
 			{
 				printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
 				return 1;
 			}
 
-			sendDouble(ch, sim.x[OUT_IDX]); // change to sendFloat - all date to be changed to float
-			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.7);
+			sendDouble(ch, (double)sim.x[OUT_IDX]); // change to sendFloat - all date to be changed to float
+			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
 			if (ch->ufds[CAN_IDX].revents & POLLIN)
 			{
 				params[IN_IDX] = readDouble(ch); // change to readFloat
+//				params[IN_IDX] = 0.0;
 			}
 			else
 			{

@@ -42,7 +42,7 @@
 #define X_LEN_I					1		// vector of state variables length for inertia
 #define X_LEN_S					4		// for suspension
 #define X_LEN					X_LEN_S
-#define PARAM_LEN				2		// parameter vector length
+#define PARAM_LEN				3		// parameter vector length
 #define OUT_IDX					0		// index of the observed state variable in the state vector (system output)
 										// 0 for inertia, 2 for suspension
 #define U_IDX					2		// index of disturbance value in params

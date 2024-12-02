@@ -19,7 +19,7 @@ void simDataToFile(Simulation* const sim)
 {
         int i;
 //        int it = 0;
-        for (i = 0; i < sim->cnt; i++)
+        for (i = 0; i <= sim->cnt; i++) // <= ---> see cnt incrementation in runSim here
         {
 //                it += sprintf(sim->fh.buf + it, "%.4f\n", sim->data_vec[i]); // t
 //                sprintf(sim->t_vec[i],	  "%.4f\n", sim->data_vec[i]); // t

@@ -109,7 +109,7 @@ void control(CanHandler* ch)
 {
 	char stdin_buf[20] = {0}; // move stdin stuff to some fn, vars maybe to can handler
 	char temp_char;
-	double const out_ref = 5;
+	double const out_ref = 0;
 
 	ch->ufds[2].fd = STDIN_FILENO;
 	ch->ufds[2].events = POLLIN;
@@ -119,7 +119,8 @@ void control(CanHandler* ch)
 		poll(ch->ufds, 3, -1);
 		if (ch->ufds[0].revents & POLLIN)
 		{
-			sendDouble(ch, controllerOutput(readDouble(ch), out_ref));
+//			sendDouble(ch, controllerOutput(readDouble(ch), out_ref));
+			sendDouble(ch, PIDoutput(readDouble(ch), out_ref));
 		}
 		if (ch->ufds[2].revents & POLLIN)
 		{
