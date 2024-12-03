@@ -50,6 +50,10 @@
 #define IN_IDX					0		// index of system input in params
 #define SIM_STEP				0.010 	// 10 ms
 #define SIN_W					3.14/4 	// rad/s - sinus disturbance angular frequency
+#define TR_T					1		// s - transient time after disturbance f change
+#define FIRST_F					2		// Hz - starting disturbance f
+#define LAST_F					3		// Hz
+#define F_STEP					0.1		// Hz
 
 // inertia parameters:
 #define TS         5		// s; inertia system time constant
@@ -87,7 +91,7 @@ typedef struct Simulation_
 
 	float* data_vec;
 	float* u_vec;	 // vector for disturbance data
-	float* t_vec;	 // time vector
+	float* t_vec;	 // time vector - can be removed; it will be 0.1, 0.2, 0.3 ...
 	FileHandler fh;
 
 } Simulation;

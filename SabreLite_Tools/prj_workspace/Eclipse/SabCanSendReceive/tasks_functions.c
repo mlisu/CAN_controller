@@ -1,6 +1,8 @@
 
 #include "tasks_functions.h"
 
+#include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h> //byte type (e.g. int8_t)
 #include <stdlib.h> //free
@@ -176,21 +178,52 @@ float ticksToMs(clock_t ticks)
 	return (float)ticks / CLOCKS_PER_SEC * 1000;
 }
 
+int* allocateArray(int cnt)
+{
+	int* ret = malloc(cnt*sizeof(int));
+	if (ret == NULL)
+	{
+		printf("allocateArray failed to allocate memory.\n");
+		exit(1);
+	}
+	return ret;
+}
+
+void computeRMSratio(Simulation* sim, int* indices, int cnt)
+{
+	int i, j;
+	int sampl_nr;
+	double f = FIRST_F;
+	double rms[2] = {0.0, 0.0};
+	for (i = 0; i < cnt; i++)
+	{
+		sampl_nr = 10/f/SIM_STEP + 0.5;
+		for (j = indices[i] - (sampl_nr - 1); j <= indices[i]; j++)
+		{
+			rms[0] += sim->data_vec[j] * sim->data_vec[j]; // signal
+			rms[1] += sim->u_vec[j]    * sim->u_vec[j];	   // disturbance
+		}
+		printf("f: %f\trms ratio: %f\n", f, sqrt(rms[0] / rms[1]));
+		rms[0] = 0.0;
+		rms[1] = 0.0;
+		f += F_STEP;
+	}
+}
+
 int runSimulation(CanHandler* ch)
 {
 	int i = 0;
-
 	long long int expTmp;
 	float dt_ms;
 	clock_t t;
-
-//	uint32_t can_id = 0;
-	double can_data;
 
 	double f; // disturbance frequency, Hz
 	double params[PARAM_LEN] = {0.0}; // ctrl signal
 	Simulation sim;
 	double t_end;
+
+	int f_nr = (LAST_F - FIRST_F) / F_STEP + 1;
+	int* indices = allocateArray(f_nr);
 
 	srand(time(NULL));
 //	initSim(&sim, inertiaModel, X_LEN, SIM_STEP, params);
@@ -201,15 +234,15 @@ int runSimulation(CanHandler* ch)
 
 //	ch->inOutCanFrame.can_id = can_id;
 
-	for (f = 2; f < 3.01; f += 0.1) // w jakich jednostkach jest sim.t?
+	for (f = FIRST_F; f < (LAST_F + 0.1); f += F_STEP) // w jakich jednostkach jest sim.t?
 	{
-		t_end = sim.t + 10/f + 1;
+		t_end = sim.t + 10/f + TR_T; // TR_T == 1 s
 		params[UF_IDX] = f;
 		while (sim.t < t_end) // maybe move e.g. this to a function so it all looks better
 		{
 			t = clock();
 			runSim(&sim);
-			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // possibly use sim.t for this
+			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
 			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
 			if (dt_ms <= 1) // change this magic number to macro; possibly move to a function
 			{
@@ -239,8 +272,11 @@ int runSimulation(CanHandler* ch)
 			poll(ch->ufds, TIMER_IDX + 1, -1);
 			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
 		}
+		indices[i++] = sim.cnt;
 	}
+	assert(i == f_nr);
 	simDataToFile(&sim);
+	computeRMSratio(&sim, indices, f_nr);
 
 	return 0;
 }
