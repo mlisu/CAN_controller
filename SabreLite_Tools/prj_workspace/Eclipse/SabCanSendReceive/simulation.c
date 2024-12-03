@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <math.h>
-//#include <stdlib.h>
 
 static void initFileHandler(FileHandler* const fh)
 {
@@ -12,24 +11,17 @@ static void initFileHandler(FileHandler* const fh)
 		printf("Could not open a file, exiting\n");
 		exit(1);
 	}
-	//wyzerować buf
 }
 
 void simDataToFile(Simulation* const sim)
 {
         int i;
-//        int it = 0;
         for (i = 0; i <= sim->cnt; i++) // <= ---> see cnt incrementation in runSim here
         {
-//                it += sprintf(sim->fh.buf + it, "%.4f\n", sim->data_vec[i]); // t
-//                sprintf(sim->t_vec[i],	  "%.4f\n", sim->data_vec[i]); // t
-//                sprintf(sim->data_vec[i], "%.4f\n", sim->data_vec[i]); //
                 fprintf(sim->fh.f, "%.4f;" , sim->t_vec[i]);
                 fprintf(sim->fh.f, "%.4f;" , sim->data_vec[i]);
                 fprintf(sim->fh.f, "%.4f\n", sim->u_vec[i]);
         }
-        // jak nie wyzerowuje na początku buf, to wpisać do buf[it] zero
-//        fprintf(sim->fh.f, "%s", sim->fh.buf);
         fclose(sim->fh.f);
 }
 

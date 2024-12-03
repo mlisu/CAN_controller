@@ -1,50 +1,17 @@
 #ifndef SIMULATION_H_
 #define SIMULATION_H_
 
-/*
-  Assumed max simulation time is 300s.
-  Assumed inertia sampling interval is 30ms.
-  Therefore max number of samples is 300s/30ms = 10000 + 1 (+1 for zero sample).
-  This amount is defined by the SIM_DATA_VEC_LEN_MAX constant.
-  Assumed sample data type is "double", so 10001*8 = 80008 bytes for data buffer
-  is needed.
-  Apart from the SIM_DATA_VEC_LEN_MAX, there is real simulation samples number
-  defined, which equals to STIME / T + 1, (see descriptions of macros; +1 for the
-  zero sample) and is defined by the  SIM_DATA_VEC_LEN macro.
-  Introducing both SIM_DATA_VEC_LEN_MAX and SIM_DATA_VEC_LEN is for defining
-  fixed array size with SIM_DATA_VEC_LEN_MAX.
-  A buffer for data samples converted to chars of format "123.123\n" (8 bytes) is being used
-  to limit file i/o operations. Because of the char data format (8 bytes),
-  the buffer lengths equals to the size of raw data buffer (80008) + 1 = 80009
-  (+1 for the terminating \0). This buffer length is defined by the
-  FILE_BUF_LEN macro.
-  The 2 buffers consume 160 kB of memory. Any increasing should be done upon consideration
-  of the stack size (commonly 1 or 2 MB, but should be checked) also taking in consideration
-  proper reserve for another data.
-
-  There could be more data write ops and bufs overwriting during runtime, which allows longer sim time.
-*/
 #include <stdio.h>
 #include <gsl/gsl_odeiv2.h>
 #include <gsl/gsl_errno.h>
 
 // simulation parameters:
-#define STIME 					5 //s simulation time, assumed MAX is 50s
-#define SIM_DATA_VEC_LEN		((int)(STIME/SIM_STEP + 0.5) + 1) /* assuming STIME/T = 15,78, then we have 16 data point
-															  + 1 for zero data point. Keep some reserve between MAX
-															  and REAL in case of timers inaccuracy
-													 	   */
 #define SIM_DATA_VEC_LEN_MAX	50000
-//#define FILE_BUF_LEN     		80009
-#define FILE_BUF_LEN     		1 // remove or adapt
 #define OUT_FILE_NAME			"system_response.csv"
 
-#define X_LEN_I					1		// vector of state variables length for inertia
-#define X_LEN_S					4		// for suspension
-#define X_LEN					X_LEN_S
+#define X_LEN					4 		// vector of state variables length for inertia; 1 for inertia, 4 for suspension
 #define PARAM_LEN				3		// parameter vector length
 #define OUT_IDX					0		// index of the observed state variable in the state vector (system output)
-										// 0 for inertia, 2 for suspension
 #define U_IDX					2		// index of disturbance value in params
 #define UF_IDX					1		// index of disturbance freq in params
 #define IN_IDX					0		// index of system input in params
@@ -70,10 +37,10 @@
 #define C1 1000		// N/(m/s)	// 1000
 #define C2 2500		// N/(m/s)	// 2500
 
-typedef struct FileHandler_
+typedef struct FileHandler_ // move f to Simylation, buf is unnecessary
 {
 	FILE* f;
-	char buf[FILE_BUF_LEN];
+//	char buf[FILE_BUF_LEN];
 
 } FileHandler;
 

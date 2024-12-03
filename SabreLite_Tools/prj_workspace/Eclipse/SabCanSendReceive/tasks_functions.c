@@ -218,7 +218,7 @@ int runSimulation(CanHandler* ch)
 	clock_t t;
 
 	double f; // disturbance frequency, Hz
-	double params[PARAM_LEN] = {0.0}; // ctrl signal
+	double params[PARAM_LEN] = {0.0}; // first array member is ctrl signal
 	Simulation sim;
 	double t_end;
 
@@ -232,19 +232,17 @@ int runSimulation(CanHandler* ch)
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
-//	ch->inOutCanFrame.can_id = can_id;
-
-	for (f = FIRST_F; f < (LAST_F + 0.1); f += F_STEP) // w jakich jednostkach jest sim.t?
+	for (f = FIRST_F; f < (LAST_F + 0.1); f += F_STEP)
 	{
 		t_end = sim.t + 10/f + TR_T; // TR_T == 1 s
 		params[UF_IDX] = f;
-		while (sim.t < t_end) // maybe move e.g. this to a function so it all looks better
+		while (sim.t < t_end)
 		{
 			t = clock();
 			runSim(&sim);
 			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
 			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
-			if (dt_ms <= 1) // change this magic number to macro; possibly move to a function
+			if (dt_ms <= 1)
 			{
 				printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
 				return 1;
@@ -255,7 +253,6 @@ int runSimulation(CanHandler* ch)
 			if (ch->ufds[CAN_IDX].revents & POLLIN)
 			{
 				params[IN_IDX] = readDouble(ch); // change to readFloat
-//				params[IN_IDX] = 0.0;
 			}
 			else
 			{
