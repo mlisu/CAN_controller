@@ -275,6 +275,8 @@ int runSimulation(CanHandler* ch)
 	simDataToFile(&sim);
 	computeRMSratio(&sim, indices, f_nr);
 
+	// free memory here!
+
 	return 0;
 }
 

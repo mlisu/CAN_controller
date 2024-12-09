@@ -57,6 +57,114 @@ int suspensionModel(double t, const double x[], double dxdt[], void* params)
 	return GSL_SUCCESS;
 }
 
+int riddleModel(double t, const double x[], double dxdt[], void* params)
+{
+	// siła
+	// 19
+	/*
+	 * siła Fex = sin
+	 */
+	Fex = Fe*sin(2*pi*19*t);
+	Fez = Fe*cos...
+	Fe = me*(2*pi*19)^2*re; <--- siłą odśrodkowa
+	re = 0.007;//[m];
+	// Siłą F odpowiada sile odsrodowej
+
+	// M1 and z1 are for the mass above
+	double const xs  = x[0];
+	double const zs  = x[1];
+	double const ps  = x[2];
+	double const xsp = x[3];
+	double const zsp = x[4];
+	double const psp = x[5];
+
+		// 0.34 - 0.35
+	double const Lh  = 1; // half of riddle length // Lh odczytywać z tabelki - lsf i lsr - ile od środka
+	double const xsf = xs - Lh*(1-cos(ps));
+	double const xsr = xs + Lh*(1-cos(ps));
+	double const zsf = zs + Lh*(sin(ps));
+	double const zsr = zs - Lh*(sin(ps));
+
+	xsf = xs + lsf*cos(ps) + hsf * sin(ps);
+	xsr = xs - lsr*cos(ps) + hsr * sin(ps);
+	zsf = zs + hsf*cos(ps) - lsf * sin(ps);
+	zsr = zs + hsr*cos(ps) + lsr * sin(ps);
+
+	// kxf == kxr; kzf == kzr // grawitacja to siądzie ale nie zakłądać
+	double const kx = 1, kz = 1, cx = 1, cz = 1, cp = 1;
+	double const Fkfx = -kx*(xsf - xsf0); // xsf0 == 0 na początku
+	double const Fkrx = -kx*xsr;
+	double const Fcxs = -cx*xsp;
+	double const Fkfz = -kz*zsf;
+	double const Fkrz = -kz*zsr;
+	double const Fczs = -cz*zsp;
+
+	double const Mcps = -cps*psp;
+
+	Isphis = Ms;
+	msxspp = Fex + Fsx;
+	mszspp = Fez + Fsz;
+
+	/*
+	 * Na początek można uprościć że cr == cf. Ale potem lepiej różne jak mam czas
+	 * cmin = 0; cmax = 1000;Ns/m
+	 * steruje cr == cf albo oddzilnie; Można inty przesyłać
+	 */
+	// CAN ma 1 Mb/s; w wersj Fd to 5 Mb/s (Phytec) - 64 bajty ramki
+
+	/*
+	 * Z pomiarów dostaje przyspieszenie - z tego wyliczam RMS i dla zadanego RMS
+	 * staruje. Jak RMS > zadane RMS -> zwięskza C, i odwrotnie
+	 * regulator PI ale samo I też może działać. Nastawy prób i błędów albo odpowiedź
+	 * skokowa. Średnia krocząca / filtry inercyjny
+	 * Mamy stałą f = 19Hz, można policzyć ile próbek: 100/19 = 5.26 próbki na okres.
+	 * RMS najlepiej liczyć z całego okresu - może być dla 4 okresóœ = 21,05
+	 * Dla kolejnych wywłań regulatora biore ostatnie 21 próbek - najstarszą wyrzucam
+	 * biore aktualną. I uśredniam sposobem średniej kroczącej. Próbka to kwadrate wartości
+	 * przyspieszenia pionowe z przodu i z tyłu. Wysyłąm 2 ramki - 1 azf, druga azr.
+	 * Na postawie tych a liczymy średnią i to jest as (przyspieszenie środka)
+	 * as (oszacowanie as- oznaczyć żę to oszacowanie) podnosze do kwadratu sqrt((suma as od 1 do 21) / 21)
+	 *
+	 * Średnia krocząca dodaje wartości w buforze (21 wartości) i dzili przez 21.
+	 * Żeby obliczyć RMS to na początku w buforze daje kwadrat as. Wyjście średniej kroczącej pierwiastkuje.
+	 * Dodaje kwadraty asów do bufora je dziele przez 21. RMS = sqrt(średnia krocząca)
+	 * 30m/s2; RMS = 20 m/s2 (19) np.
+	 * Narysować schemat sterowania
+	 */
+	/*
+	 * samym cz sterować; jak będzie czas
+	 */
+	sim(1ms)
+	poll
+	sim(1ms)
+	poll
+	(sim(1ms))
+
+
+	sim(10ms)
+	send state
+	sim(1ms)
+	/*
+	 * Dokładnie co okres próbkowania odbierać sterowania. Wysyłąmy w tej samej chwli stan co odbieramy sterowanie.
+	 */
+	// Czyli zrobić że zawsze jest 1 próbka opóźnienia.
+
+
+	/*
+	 *
+	 */
+
+	dxdt[0] = z1p;                                      // z1'
+	dxdt[1] = z2p;                                      // z2'
+	dxdt[2] = (K1*(z2 - z1) + C1*(z2p - z1p) + F) / M1; // z1"
+	dxdt[3] = (K2*(u  - z2) + C2*(up  - z2p)			// z2"
+			 - K1*(z2 - z1) - C1*(z2p - z1p) - F) / M2;
+
+	((double*)params)[U_IDX] = u; // is U right name for disturbance?
+
+	return GSL_SUCCESS;
+}
+
 void initSim(Simulation* const sim,
 		 	int (*model)(double, const double[], double[], void*),
 			int const dimension,
