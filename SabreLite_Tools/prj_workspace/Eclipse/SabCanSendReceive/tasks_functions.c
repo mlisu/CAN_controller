@@ -275,11 +275,80 @@ int runSimulation(CanHandler* ch)
 	simDataToFile(&sim);
 	computeRMSratio(&sim, indices, f_nr);
 
-	// free memory here!
+	deleteSim(&sim);
 
 	return 0;
 }
 
+int runRiddleSimulation(CanHandler* ch)
+{
+	int i = 0;
+	long long int expTmp;
+	float dt_ms;
+	clock_t t;
+
+	double f; // disturbance frequency, Hz
+	double params[PARAM_LEN] = {0.0}; // first array member is ctrl signal
+	Simulation sim;
+	double t_end;
+
+	int f_nr = (LAST_F - FIRST_F) / F_STEP + 1;
+	int* indices = allocateArray(f_nr);
+
+	srand(time(NULL));
+//	initSim(&sim, inertiaModel, X_LEN, SIM_STEP, params);
+	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, params);
+
+	pollTimer_config(ch->ufds, TIMER_IDX);
+	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
+
+	for (f = FIRST_F; f < (LAST_F + 0.1); f += F_STEP)
+	{
+		t_end = sim.t + 10/f + TR_T; // TR_T == 1 s
+		params[UF_IDX] = f;
+		while (sim.t < t_end)
+		{
+			t = clock();
+			runSim(&sim);
+			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
+			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
+			if (dt_ms <= 1)
+			{
+				printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
+				return 1;
+			}
+
+			sendDouble(ch, (double)sim.x[OUT_IDX]); // change to sendFloat - all date to be changed to float
+			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
+			if (ch->ufds[CAN_IDX].revents & POLLIN)
+			{
+				params[IN_IDX] = readDouble(ch); // change to readFloat
+			}
+			else
+			{
+				printf("Control signal has not come.\n"); // here recovering can be implemented
+				exit(1);
+			}
+
+			if (( SIM_STEP * 1000 - ticksToMs(clock() - t) ) < 0.5)
+			{
+				printf("Simulation step took longer than (SIM_STEP - 0.5 ms)\n");
+				return 1;
+			}
+
+			poll(ch->ufds, TIMER_IDX + 1, -1);
+			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
+		}
+		indices[i++] = sim.cnt;
+	}
+	assert(i == f_nr);
+	simDataToFile(&sim);
+	computeRMSratio(&sim, indices, f_nr);
+
+	deleteSim(&sim);
+
+	return 0;
+}
 
 
 

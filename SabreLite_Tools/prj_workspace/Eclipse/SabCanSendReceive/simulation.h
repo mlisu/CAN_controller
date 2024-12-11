@@ -37,6 +37,30 @@
 #define C1 1000		// N/(m/s)	// 1000
 #define C2 2500		// N/(m/s)	// 2500
 
+// riddle parameters:
+#define MS		102.6
+#define LSF		0.34
+#define HSF		0.14
+#define LSR		0.35
+#define HSR		0.08
+#define KX		44.966
+#define KZ		57.094
+#define CX		800
+#define CZ		800
+#define CPS		31
+#define ME		32.4
+#define FREQF	19
+#define RE		0.007
+// initial coordinates:
+#define XSF0	 LSF
+#define XSR0	-LSR
+#define ZSF0	 HSF
+#define ZSR0	 HSR
+
+#define RIN_IDXF 0		// Riddle in idx front
+#define RIN_IDXR 1		// Rear
+
+
 typedef struct FileHandler_ // move f to Simylation, buf is unnecessary
 {
 	FILE* f;
@@ -75,5 +99,7 @@ void initSim(Simulation* const sim,
 		    double* const params);
 
 int runSim(Simulation* const sim);
+
+void deleteSim(Simulation* const sim);
 
 #endif /* SIMULATION_H_ */

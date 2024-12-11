@@ -70,7 +70,6 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	re = 0.007;//[m];
 	// Siłą F odpowiada sile odsrodowej
 
-	// M1 and z1 are for the mass above
 	double const xs  = x[0];
 	double const zs  = x[1];
 	double const ps  = x[2];
@@ -78,32 +77,42 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	double const zsp = x[4];
 	double const psp = x[5];
 
-		// 0.34 - 0.35
-	double const Lh  = 1; // half of riddle length // Lh odczytywać z tabelki - lsf i lsr - ile od środka
-	double const xsf = xs - Lh*(1-cos(ps));
-	double const xsr = xs + Lh*(1-cos(ps));
-	double const zsf = zs + Lh*(sin(ps));
-	double const zsr = zs - Lh*(sin(ps));
+	double const xsf = xs + LSF*cos(ps) + HSF * sin(ps);
+	double const xsr = xs - LSR*cos(ps) + HSR * sin(ps);
+	double const zsf = zs + HSF*cos(ps) - LSF * sin(ps);
+	double const zsr = zs + HSR*cos(ps) + LSR * sin(ps);
 
-	xsf = xs + lsf*cos(ps) + hsf * sin(ps);
-	xsr = xs - lsr*cos(ps) + hsr * sin(ps);
-	zsf = zs + hsf*cos(ps) - lsf * sin(ps);
-	zsr = zs + hsr*cos(ps) + lsr * sin(ps);
-
+	double const zsfp = zsp - psp * (HSF*sin(ps) + LSF*cos(ps)); //zsp - HSF*sin(ps)*psp - LSF*cos(ps)*psp;
+	double const zsrp = zsp - psp * (HSR*sin(ps) - LSR*cos(ps)); //zsp - HSR*sin(ps)*psp + LSR*cos(ps)*psp;
 	// kxf == kxr; kzf == kzr // grawitacja to siądzie ale nie zakłądać
-	double const kx = 1, kz = 1, cx = 1, cz = 1, cp = 1;
-	double const Fkfx = -kx*(xsf - xsf0); // xsf0 == 0 na początku
-	double const Fkrx = -kx*xsr;
-	double const Fcxs = -cx*xsp;
-	double const Fkfz = -kz*zsf;
-	double const Fkrz = -kz*zsr;
-	double const Fczs = -cz*zsp;
 
-	double const Mcps = -cps*psp;
+	double const Fkfx = -KX*(xsf - XSF0);
+	double const Fkrx = -KX*(xsr - XSR0);
+	double const Fkfz = -KZ*(zsf - ZSF0);
+	double const Fkrz = -KZ*(zsr - ZSR0);
+
+	double const Fcxs = -CX*xsp;
+	double const Fczs = -CZ*zsp;
+	double const Mcps = -CPS*psp;
+
+	double const cf = ((double*)params)[RIN_IDXF]; // from controller for front
+	double const cr = ((double*)params)[RIN_IDXR]; // for rear
+	double const cff = cf*zsfp;	// controlled force front
+	double const cfr = cr*zsrp; // rear
+
+	double const Fsx = Fkfx + Fkrx + Fcxs;
+	double const Fsz = Fkfz + Fkrz + Fczs + cff + cfr;
+	double const Ms	 = Mcps + Fkfx * (zsf - zs) + Fkrx * (zsr - zs)
+					   -(Fkfz + cff)*(xsf - xs) - (Fkrz + cfr)*(xsr - xs);
 
 	Isphis = Ms;
 	msxspp = Fex + Fsx;
 	mszspp = Fez + Fsz;
+
+	dxdt[0] = xsp;			// xs'
+	dxdt[1] = zsp;			// zs'
+	dxdt[2] = psp;			// ps'
+	dxdt[3] =
 
 	/*
 	 * Na początek można uprościć że cr == cf. Ale potem lepiej różne jak mam czas
@@ -229,4 +238,16 @@ int runSim(Simulation* const sim)
 
     return status;
 }
+
+void deleteSim(Simulation* const sim)
+{
+	free(sim->data_vec);
+	free(sim->u_vec);
+	free(sim->t_vec);
+}
+
+
+
+
+
 
