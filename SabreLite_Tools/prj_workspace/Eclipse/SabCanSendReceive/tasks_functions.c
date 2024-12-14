@@ -200,8 +200,8 @@ void computeRMSratio(Simulation* sim, int* indices, int cnt)
 		sampl_nr = 10/f/SIM_STEP + 0.5;
 		for (j = indices[i] - (sampl_nr - 1); j <= indices[i]; j++)
 		{
-			rms[0] += sim->data_vec[j] * sim->data_vec[j]; // signal
-			rms[1] += sim->u_vec[j]    * sim->u_vec[j];	   // disturbance
+			rms[0] += sim->data_vec1[j] * sim->data_vec1[j]; // signal
+			rms[1] += sim->data_vec2[j] * sim->data_vec2[j]; // disturbance
 		}
 		printf("f: %f\trms ratio: %f\n", f, sqrt(rms[0] / rms[1]));
 		rms[0] = 0.0;
@@ -218,7 +218,8 @@ int runSimulation(CanHandler* ch)
 	clock_t t;
 
 	double f; // disturbance frequency, Hz
-	double params[PARAM_LEN] = {0.0}; // first array member is ctrl signal
+//	double params[PARAM_LEN] = {0.0}; // first array member is ctrl signal
+	Params params = {{0, 0}, {0.0, 0.0, 0.0}};
 	Simulation sim;
 	double t_end;
 
@@ -227,7 +228,7 @@ int runSimulation(CanHandler* ch)
 
 	srand(time(NULL));
 //	initSim(&sim, inertiaModel, X_LEN, SIM_STEP, params);
-	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, params);
+	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, &params);
 
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
@@ -235,11 +236,14 @@ int runSimulation(CanHandler* ch)
 	for (f = FIRST_F; f < (LAST_F + 0.1); f += F_STEP)
 	{
 		t_end = sim.t + 10/f + TR_T; // TR_T == 1 s
-		params[UF_IDX] = f;
+		params.data_dbl[UF_IDX] = f;
 		while (sim.t < t_end)
 		{
 			t = clock();
 			runSim(&sim);
+
+			sendDouble(ch, params.data_dbl[OUT_IDX]); // change to sendFloat - all date to be changed to float
+
 			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
 			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
 			if (dt_ms <= 1)
@@ -248,11 +252,10 @@ int runSimulation(CanHandler* ch)
 				return 1;
 			}
 
-			sendDouble(ch, (double)sim.x[OUT_IDX]); // change to sendFloat - all date to be changed to float
 			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
 			if (ch->ufds[CAN_IDX].revents & POLLIN)
 			{
-				params[IN_IDX] = readDouble(ch); // change to readFloat
+				params.data_dbl[IN_IDX] = readDouble(ch); // change to readFloat
 			}
 			else
 			{
@@ -276,74 +279,67 @@ int runSimulation(CanHandler* ch)
 	computeRMSratio(&sim, indices, f_nr);
 
 	deleteSim(&sim);
+	free(indices);
 
 	return 0;
 }
 
 int runRiddleSimulation(CanHandler* ch)
 {
+	assert(RSIM_STEPS_NR < SIM_DATA_VEC_LEN_MAX);
 	int i = 0;
 	long long int expTmp;
 	float dt_ms;
 	clock_t t;
 
-	double f; // disturbance frequency, Hz
-	double params[PARAM_LEN] = {0.0}; // first array member is ctrl signal
+	Params params = {{0, 0}, {0.0, 0.0, 0.0}};
 	Simulation sim;
-	double t_end;
-
-	int f_nr = (LAST_F - FIRST_F) / F_STEP + 1;
-	int* indices = allocateArray(f_nr);
 
 	srand(time(NULL));
-//	initSim(&sim, inertiaModel, X_LEN, SIM_STEP, params);
-	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, params);
+
+	initSim(&sim, riddleModel, X_LEN, SIM_STEP, &params);
 
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
-	for (f = FIRST_F; f < (LAST_F + 0.1); f += F_STEP)
+	for (i = 1; i <= RSIM_STEPS_NR; i++)
 	{
-		t_end = sim.t + 10/f + TR_T; // TR_T == 1 s
-		params[UF_IDX] = f;
-		while (sim.t < t_end)
+		t = clock();
+		runSim(&sim);
+
+		sendDouble(ch, params.data_dbl[0]);
+		sendDouble(ch, params.data_dbl[1]);
+
+		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // to i ten if poniżej przenieść do funkcji
+
+		if (dt_ms <= 1)
 		{
-			t = clock();
-			runSim(&sim);
-			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
-			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
-			if (dt_ms <= 1)
-			{
-				printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
-				return 1;
-			}
-
-			sendDouble(ch, (double)sim.x[OUT_IDX]); // change to sendFloat - all date to be changed to float
-			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
-			if (ch->ufds[CAN_IDX].revents & POLLIN)
-			{
-				params[IN_IDX] = readDouble(ch); // change to readFloat
-			}
-			else
-			{
-				printf("Control signal has not come.\n"); // here recovering can be implemented
-				exit(1);
-			}
-
-			if (( SIM_STEP * 1000 - ticksToMs(clock() - t) ) < 0.5)
-			{
-				printf("Simulation step took longer than (SIM_STEP - 0.5 ms)\n");
-				return 1;
-			}
-
-			poll(ch->ufds, TIMER_IDX + 1, -1);
-			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
+			printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
+			return 1;
 		}
-		indices[i++] = sim.cnt;
+
+		poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
+		if (ch->ufds[CAN_IDX].revents & POLLIN)
+		{
+			read2ints(ch, &(params.data_int[0]), &(params.data_int[1]));
+		}
+		else
+		{
+			printf("Control signal has not come.\n"); // here recovering can be implemented
+			exit(1);
+		}
+
+		if (( SIM_STEP * 1000 - ticksToMs(clock() - t) ) < 0.5)
+		{
+			printf("Simulation step took longer than (SIM_STEP - 0.5 ms)\n");
+			return 1;
+		}
+
+		poll(ch->ufds, TIMER_IDX + 1, -1);
+		tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
 	}
-	assert(i == f_nr);
+
 	simDataToFile(&sim);
-	computeRMSratio(&sim, indices, f_nr);
 
 	deleteSim(&sim);
 

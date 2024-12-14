@@ -30,6 +30,7 @@ void closeCanHandler(CanHandler* ch);
 int canConfig();
 
 int32_t readInt32(CanHandler* ch);
+void read2ints(CanHandler* ch, int* first, int* second);
 double readDouble(CanHandler* ch);
 ssize_t readCan(CanHandler* ch);
 int readSeries(CanHandler* ch, int32_t cnt);

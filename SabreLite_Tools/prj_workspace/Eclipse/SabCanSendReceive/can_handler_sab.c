@@ -67,6 +67,13 @@ int32_t readInt32(CanHandler* ch)
 	return *(int32_t*)ch->inOutCanFrame.data;
 }
 
+void read2ints(CanHandler* ch, int* first, int* second)
+{
+	readCan(ch);
+	*first  = *(int*)ch->inOutCanFrame.data;
+	*second = *(int*)(ch->inOutCanFrame.data + sizeof(int));
+}
+
 double readDouble(CanHandler* ch)
 {
 	readCan(ch);
