@@ -39,6 +39,7 @@ double PIDoutput(double input, double out_ref)
 	return out;
 }
 
+// TODO make generic fn for PI suspension and riddle by taking 3rd arg of struct with PI params
 double riddleControl(double input, double out_ref)
 {
 	static double err_prev = 0;
@@ -47,11 +48,11 @@ double riddleControl(double input, double out_ref)
 	double out;
 	double const err = out_ref - input;
 
-	integral += TC/TCI/2*(err + err_prev);
+	integral += TC/RTI/2*(err + err_prev);
 
 	err_prev = err;
 
-	out = KCP*(err + integral);
+	out = RKP*(err + integral);
 
 	if (out > RMAX_OUT) return  RMAX_OUT;
 	if (out < 0) return 0;
@@ -61,27 +62,28 @@ double riddleControl(double input, double out_ref)
 
 double computeRMS(double acc_front, double acc_rear)
 {
-	static long long insert_idx = 0;
-	static double rmss[SAMPLS];
+	static long long counter = 0;
+	static double rmss[SAMPLS] = {0.0};
 	static unsigned char flag = 0;
 	static int in_buf = 0;
+	static double sum = 0.0;
 
 	double const acc = (acc_front + acc_rear) / 2;
-	double sum = 0;
-	int i;
+
+	int insert_idx;
 
 	if(!flag)
 	{
 		if(in_buf == SAMPLS) flag = 1;
-		else in_buf = insert_idx + 1;
+		else in_buf = counter + 1;
 	}
 
-	rmss[insert_idx++ % SAMPLS] = acc*acc;
+	insert_idx = counter++ % SAMPLS;
 
-	for(i = 0; i < in_buf; i++)
-	{
-		sum += rmss[i];
-	}
+	// adding all array elements can be more accurate (we skip one float operation -> "-=")
+	sum -= rmss[insert_idx];
+	rmss[insert_idx] = acc*acc;
+	sum += rmss[insert_idx];
 
 	return sqrt(sum / in_buf);
 }

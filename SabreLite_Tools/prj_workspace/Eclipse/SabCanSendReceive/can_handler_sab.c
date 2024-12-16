@@ -71,7 +71,7 @@ void read2ints(CanHandler* ch, int* first, int* second)
 {
 	readCan(ch);
 	*first  = *(int*)ch->inOutCanFrame.data;
-	*second = *(int*)(ch->inOutCanFrame.data + sizeof(int));
+	*second = *((int*)ch->inOutCanFrame.data + 1);
 }
 
 double readDouble(CanHandler* ch)

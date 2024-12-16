@@ -36,6 +36,7 @@ int32_t readInt32(CanHandler* ch);
 double readDouble(CanHandler* ch);
 
 void sendInt32(CanHandler* ch, int32_t data_in);
+void send2ints(CanHandler* ch, int first, int second);
 void sendDouble(CanHandler* ch, double data_in);
 ssize_t canWrite(CanHandler* ch);
 ssize_t sendNReceive(CanHandler* ch);

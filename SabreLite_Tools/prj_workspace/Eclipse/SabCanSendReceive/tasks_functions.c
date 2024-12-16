@@ -284,6 +284,15 @@ int runSimulation(CanHandler* ch)
 	return 0;
 }
 
+void send2WithIds(CanHandler* ch, Params* params)
+{
+	static long long i = 0;
+	ch->inOutCanFrame.can_id = i++;
+	sendDouble(ch, (*params).data_dbl[0]);
+	ch->inOutCanFrame.can_id = i++;
+	sendDouble(ch, (*params).data_dbl[1]);
+}
+
 int runRiddleSimulation(CanHandler* ch)
 {
 	assert(RSIM_STEPS_NR < SIM_DATA_VEC_LEN_MAX);
@@ -307,8 +316,7 @@ int runRiddleSimulation(CanHandler* ch)
 		t = clock();
 		runSim(&sim);
 
-		sendDouble(ch, params.data_dbl[0]);
-		sendDouble(ch, params.data_dbl[1]);
+		send2WithIds(ch, params);
 
 		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // to i ten if poniżej przenieść do funkcji
 

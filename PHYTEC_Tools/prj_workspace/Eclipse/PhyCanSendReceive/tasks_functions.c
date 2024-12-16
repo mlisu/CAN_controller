@@ -105,11 +105,49 @@ void sendPeriodically(CanHandler* ch)
 	}
 }
 
-void control(CanHandler* ch)
+void controlSuspensionImpl(CanHandler* ch, double out_ref)
+{
+	sendDouble(ch, PIDoutput(readDouble(ch), out_ref));
+}
+
+int printIf(int condition)
+{
+	if(condition)
+	{
+		printf("Broken frames order, skipping control signal\n");
+	}
+	return condition;
+}
+
+void controlRiddleImpl(CanHandler* ch, double out_ref)
+{
+	double accf;
+	double accr;
+	double ctrl;
+	int id;
+
+	accf = readDouble(ch);
+	id = ch->inOutCanFrame.can_id;
+
+	if(printIf(id % 2)) return;
+
+	poll(ch->ufds, 3, -1);
+	if (ch->ufds[0].revents & POLLIN)
+	{
+		accr = readDouble(ch);
+	}
+
+	if(printIf((ch->inOutCanFrame.can_id - id) != 1)) return;
+
+	ctrl = riddleControl(computeRMS(accf, accr), out_ref);
+	// TODO try to send different values based on front and rear position
+	send2ints(ch, ctrl, ctrl);
+}
+
+void control(CanHandler* ch, double const out_ref, void (*fn)(CanHandler*, double out_ref))
 {
 	char stdin_buf[20] = {0}; // move stdin stuff to some fn, vars maybe to can handler
 	char temp_char;
-	double const out_ref = 0;
 
 	ch->ufds[2].fd = STDIN_FILENO;
 	ch->ufds[2].events = POLLIN;
@@ -119,8 +157,7 @@ void control(CanHandler* ch)
 		poll(ch->ufds, 3, -1);
 		if (ch->ufds[0].revents & POLLIN)
 		{
-//			sendDouble(ch, controllerOutput(readDouble(ch), out_ref));
-			sendDouble(ch, PIDoutput(readDouble(ch), out_ref));
+			fn(ch, out_ref);
 		}
 		if (ch->ufds[2].revents & POLLIN)
 		{
@@ -133,7 +170,16 @@ void control(CanHandler* ch)
 			memset(stdin_buf, 0, 20);
 		}
 	}
+}
 
+void controlSuspension(CanHandler* ch)
+{
+	control(ch, OUT_REF, controlSuspensionImpl);
+}
+
+void controlRiddle(CanHandler* ch)
+{
+	control(ch, ROUT_REF, controlRiddleImpl);
 }
 
 
