@@ -40,12 +40,12 @@ double PIDoutput(double input, double out_ref)
 }
 
 // TODO make generic fn for PI suspension and riddle by taking 3rd arg of struct with PI params
-double riddleControl(double input, double out_ref)
+int riddleControl(double input, double out_ref)
 {
 	static double err_prev = 0;
 	static double integral = 0;
 
-	double out;
+	int out;
 	double const err = out_ref - input;
 
 	integral += TC/RTI/2*(err + err_prev);

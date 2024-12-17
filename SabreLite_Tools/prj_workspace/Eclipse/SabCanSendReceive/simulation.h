@@ -73,10 +73,11 @@ typedef struct FileHandler_ // move f to Simylation, buf is unnecessary
 
 } FileHandler;
 
+// Data to be sent to / from riddle simulation model:
 typedef struct Params_
 {
 	int data_int[2];
-	int data_dbl[4];
+	double data_dbl[4];
 } Params;
 
 typedef struct Simulation_
@@ -98,10 +99,7 @@ typedef struct Simulation_
 
 } Simulation;
 
-
-// Można zrobić tak że struktrua o nazwie Params (ogólna nazwa) będzie
-// miała 1 tablicę 2 intów i 1 tablice 3 double i to będzie uniwersalne
-// Data to be sent to / from riddle simulation model
+// Data to be sent to / from riddle simulation model (old, to remove probably)
 typedef struct RiddleParams_
 {
 	int cf;			// front active dumper coefficient from controller

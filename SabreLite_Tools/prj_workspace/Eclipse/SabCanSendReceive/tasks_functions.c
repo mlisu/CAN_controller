@@ -311,7 +311,7 @@ int runRiddleSimulation(CanHandler* ch)
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
-	for (i = 1; i <= RSIM_STEPS_NR; i++)
+	for (i = 1; i <= RSIM_STEPS_NR + 0.5; i++)
 	{
 		t = clock();
 		runSim(&sim);
@@ -320,7 +320,7 @@ int runRiddleSimulation(CanHandler* ch)
 
 		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // to i ten if poniżej przenieść do funkcji
 
-		if (dt_ms <= 1)
+		if (dt_ms <= 1) // move to printIf
 		{
 			printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
 			return 1;
@@ -337,7 +337,7 @@ int runRiddleSimulation(CanHandler* ch)
 			exit(1);
 		}
 
-		if (( SIM_STEP * 1000 - ticksToMs(clock() - t) ) < 0.5)
+		if (( SIM_STEP * 1000 - ticksToMs(clock() - t) ) < 0.5) // move to printIf
 		{
 			printf("Simulation step took longer than (SIM_STEP - 0.5 ms)\n");
 			return 1;

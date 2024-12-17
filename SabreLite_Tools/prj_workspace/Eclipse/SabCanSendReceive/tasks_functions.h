@@ -11,4 +11,8 @@ int readPeriodically(CanHandler* ch);
 
 int runInertiaSimulation(CanHandler* ch);
 
+int runSimulation(CanHandler* ch);
+
+int runRiddleSimulation(CanHandler* ch);
+
 #endif /* TASKS_FUNCTIONS_H_ */

@@ -232,7 +232,7 @@ int runSim(Simulation* const sim)
 void deleteSim(Simulation* const sim)
 {
 	free(sim->data_vec1);
-	free(sim->data_vec1);
+	free(sim->data_vec2);
 	free(sim->t_vec);
 }
 
