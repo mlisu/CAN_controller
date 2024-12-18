@@ -91,8 +91,8 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 
 	int const cf = ((Params*)params)->data_int[0]; // from controller for front
 	int const cr = ((Params*)params)->data_int[1]; // for rear
-	double const CFczf = cf*zsfp; // controlled force front
-	double const CFczr = cr*zsrp; // rear
+	double const CFczf = -cf*zsfp; // controlled force front
+	double const CFczr = -cr*zsrp; // rear
 
 	double const Fsx = Fkfx + Fkrx + Fcxs;
 	double const Fsz = Fkfz + Fkrz + Fczs + CFczf + CFczr;
@@ -128,42 +128,6 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	((Params*)params)->data_dbl[1] = dxdt[4] - dxdt[5] * (HSR*sinps - LSR*cosps)
 											 - psp*psp * (HSR*cosps + LSR*cosps);
 
-
-	/*
-	 * Na początek można uprościć że cr == cf. Ale potem lepiej różne jak mam czas
-	 * cmin = 0; cmax = 1000;Ns/m
-	 * steruje cr == cf albo oddzilnie; Można inty przesyłać
-	 */
-	// CAN ma 1 Mb/s; w wersj Fd to 5 Mb/s (Phytec) - 64 bajty ramki
-
-	/*
-	 * Z pomiarów dostaje przyspieszenie - z tego wyliczam RMS i dla zadanego RMS
-	 * staruje. Jak RMS > zadane RMS -> zwięskza C, i odwrotnie
-	 * regulator PI ale samo I też może działać. Nastawy prób i błędów albo odpowiedź
-	 * skokowa. Średnia krocząca / filtry inercyjny
-	 * Mamy stałą f = 19Hz, można policzyć ile próbek: 100/19 = 5.26 próbki na okres.
-	 * RMS najlepiej liczyć z całego okresu - może być dla 4 okresóœ = 21,05
-	 * Dla kolejnych wywłań regulatora biore ostatnie 21 próbek - najstarszą wyrzucam
-	 * biore aktualną. I uśredniam sposobem średniej kroczącej. Próbka to kwadrate wartości
-	 * przyspieszenia pionowe z przodu i z tyłu. Wysyłąm 2 ramki - 1 azf, druga azr.
-	 * Na postawie tych a liczymy średnią i to jest as (przyspieszenie środka)
-	 * as (oszacowanie as- oznaczyć żę to oszacowanie) podnosze do kwadratu sqrt((suma as od 1 do 21) / 21)
-	 *
-	 * Średnia krocząca dodaje wartości w buforze (21 wartości) i dzili przez 21.
-	 * Żeby obliczyć RMS to na początku w buforze daje kwadrat as. Wyjście średniej kroczącej pierwiastkuje.
-	 * Dodaje kwadraty asów do bufora je dziele przez 21. RMS = sqrt(średnia krocząca)
-	 * 30m/s2; RMS = 20 m/s2 (19) np.
-	 * Narysować schemat sterowania
-	 */
-	/*
-	 * samym cz sterować; jak będzie czas
-	 */
-
-	/*
-	 * Dokładnie co okres próbkowania odbierać sterowania. Wysyłąmy w tej samej chwli stan co odbieramy sterowanie.
-	 */
-	// Czyli zrobić że zawsze jest 1 próbka opóźnienia.
-
 	return GSL_SUCCESS;
 }
 
@@ -171,7 +135,7 @@ void initSim(Simulation* const sim,
 		 	int (*model)(double, const double[], double[], void*),
 			int const dimension,
 			double const dt,
-			double* const params)
+			Params* const params)
 {
 	gsl_odeiv2_system sys = {model, NULL, dimension, params /*sim->params*/};
 	int i;

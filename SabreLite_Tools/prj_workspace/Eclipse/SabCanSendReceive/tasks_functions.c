@@ -245,7 +245,7 @@ int runSimulation(CanHandler* ch)
 			sendDouble(ch, params.data_dbl[OUT_IDX]); // change to sendFloat - all date to be changed to float
 
 			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
-			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
+//			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
 			if (dt_ms <= 1)
 			{
 				printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
@@ -311,12 +311,12 @@ int runRiddleSimulation(CanHandler* ch)
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
-	for (i = 1; i <= RSIM_STEPS_NR + 0.5; i++)
+	for (i = 1; i <= (int)(RSIM_STEPS_NR + 0.5); i++)
 	{
 		t = clock();
 		runSim(&sim);
 
-		send2WithIds(ch, params);
+		send2WithIds(ch, &params);
 
 		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // to i ten if poniżej przenieść do funkcji
 

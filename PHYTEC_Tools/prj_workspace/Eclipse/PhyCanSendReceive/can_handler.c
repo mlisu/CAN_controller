@@ -90,6 +90,7 @@ void send2ints(CanHandler* ch, int first, int second)
 	ch->inOutCanFrame.can_dlc = 2*sizeof(int);
 	*(int*)ch->inOutCanFrame.data = first;
 	*((int*)ch->inOutCanFrame.data + 1) = second;
+	canWrite(ch);
 }
 
 void sendDouble(CanHandler* ch, double data_in)

@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#include <stdio.h>
+
 double controllerOutput(double input, double out_ref)
 {
 	static double err_prev = 0;
@@ -46,7 +48,7 @@ int riddleControl(double input, double out_ref)
 	static double integral = 0;
 
 	int out;
-	double const err = out_ref - input;
+	double const err = input - out_ref; // inversed
 
 	integral += TC/RTI/2*(err + err_prev);
 
@@ -84,6 +86,8 @@ double computeRMS(double acc_front, double acc_rear)
 	sum -= rmss[insert_idx];
 	rmss[insert_idx] = acc*acc;
 	sum += rmss[insert_idx];
+
+//	printf("sum: %f\trmss[insert_idx]: %f\tsqrt: %f\n", sum, rmss[insert_idx], sqrt(sum / in_buf));
 
 	return sqrt(sum / in_buf);
 }

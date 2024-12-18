@@ -118,15 +118,18 @@ int printIf(int condition)
 	}
 	return condition;
 }
-
+double diff = 0.0;
 void controlRiddleImpl(CanHandler* ch, double out_ref)
 {
-	double accf;
-	double accr;
-	double ctrl;
+	double accf = 0.0;
+	double accr = 0.0;
+	int ctrl;
 	int id;
 
+	double rms;
+
 	accf = readDouble(ch);
+//	printf("accf: %f\n", accf);
 	id = ch->inOutCanFrame.can_id;
 
 	if(printIf(id % 2)) return;
@@ -135,13 +138,20 @@ void controlRiddleImpl(CanHandler* ch, double out_ref)
 	if (ch->ufds[0].revents & POLLIN)
 	{
 		accr = readDouble(ch);
+//		printf("accr: %f\n", accr);
 	}
 
 	if(printIf((ch->inOutCanFrame.can_id - id) != 1)) return;
 
-	ctrl = riddleControl(computeRMS(accf, accr), out_ref);
-	// TODO try to send different values based on front and rear position
+	rms = computeRMS(accf, accr);
+	ctrl = riddleControl(rms, out_ref);
+//	ctrl = riddleControl(computeRMS(accf, accr), out_ref);
+
 	send2ints(ch, ctrl, ctrl);
+
+	printf("RMS: %f\tcontrol: %d\n", rms, ctrl);
+
+	diff += (rms - ROUT_REF) * (rms - ROUT_REF);
 }
 
 void control(CanHandler* ch, double const out_ref, void (*fn)(CanHandler*, double out_ref))
@@ -170,6 +180,7 @@ void control(CanHandler* ch, double const out_ref, void (*fn)(CanHandler*, doubl
 			memset(stdin_buf, 0, 20);
 		}
 	}
+	printf("sum diff: %f\n", diff);
 }
 
 void controlSuspension(CanHandler* ch)

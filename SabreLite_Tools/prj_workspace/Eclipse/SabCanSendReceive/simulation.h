@@ -62,8 +62,8 @@
 #define ZSR0	 HSR
 
 // Riddle simulation params
-#define RSIM_TIME 		10 // s
-#define RSIM_STEPS_NR	RSIM_TIME / SIM_STEP
+#define RSIM_TIME 		5 // s
+#define RSIM_STEPS_NR	(RSIM_TIME / SIM_STEP)
 
 
 typedef struct FileHandler_ // move f to Simylation, buf is unnecessary
@@ -117,10 +117,10 @@ int suspensionModel(double t, const double y[], double dxdt[], void* params);
 int riddleModel(double t, const double x[], double dxdt[], void* params);
 
 void initSim(Simulation* const sim,
-		    int (*model)(double, const double[], double[], void*),
-		    int const dimension,
-			double const dt,
-		    double* const params);
+		     int (*model)(double, const double[], double[], void*),
+		     int const dimension,
+			 double const dt,
+		     Params* const params);
 
 int runSim(Simulation* const sim);
 
