@@ -100,7 +100,7 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 					   -(Fkfz + CFczf)*(xsf - xs) - (Fkrz + CFczr)*(xsr - xs);
 	// Siłą FE odpowiada sile odsrodowej
 	double const Fex = FE*sin(WE*t);
-	double const Fez = FE*cos(WE*t); // angle is 0 when exciter is down
+	double const Fez = FE*cos(WE*t); // angle is 0 when exciter is up
 
 	dxdt[0] = xsp;				// xs'
 	dxdt[1] = zsp;				// zs'
@@ -118,7 +118,7 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	 *		   zspp - (pspp * A + psp * B)
 	 *	2) Derivative of zsrp
 	 *	  	a) derivative of (HSR*sinps - LSR*cosps)  == C:
-	 *	  	   psp * (HSR*cosps + LSR*cosps) == D
+	 *	  	   psp * (HSR*cosps + LSR*sinps) == D
 	 *	  	b) derivative of zsrp:
 	 *	  	   zspp - (pspp * C + psp * D)
 	 */
@@ -126,7 +126,7 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 											 - psp*psp * (HSF*cosps - LSF*sinps);
 
 	((Params*)params)->data_dbl[1] = dxdt[4] - dxdt[5] * (HSR*sinps - LSR*cosps)
-											 - psp*psp * (HSR*cosps + LSR*cosps);
+											 - psp*psp * (HSR*cosps + LSR*sinps);
 
 	return GSL_SUCCESS;
 }
