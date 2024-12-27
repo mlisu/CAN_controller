@@ -121,31 +121,25 @@ int printIf(int condition)
 double diff = 0.0;
 void controlRiddleImpl(CanHandler* ch, double out_ref)
 {
-	double accf = 0.0;
-	double accr = 0.0;
-	int ctrl;
-	int id;
-
+	static double accf = 0.0;
+	double acc;
 	double rms;
+	int ctrl;
+	static long long id = -1;
 
-	accf = readDouble(ch);
-//	printf("accf: %f\n", accf);
-	id = ch->inOutCanFrame.can_id;
+	acc = readDouble(ch);
 
-	if(printIf(id % 2)) return;
-
-	poll(ch->ufds, 3, -1);
-	if (ch->ufds[0].revents & POLLIN)
+	if (!(ch->inOutCanFrame.can_id % 2))
 	{
-		accr = readDouble(ch);
-//		printf("accr: %f\n", accr);
+		id = ch->inOutCanFrame.can_id;
+		accf = acc;
+		return;
 	}
 
 	if(printIf((ch->inOutCanFrame.can_id - id) != 1)) return;
 
-	rms = computeRMS(accf, accr);
+	rms = computeRMS(accf, acc);
 	ctrl = riddleControl(rms, out_ref);
-//	ctrl = riddleControl(computeRMS(accf, accr), out_ref);
 
 	send2ints(ch, ctrl, ctrl);
 
