@@ -293,6 +293,16 @@ void send2WithIds(CanHandler* ch, Params* params)
 	sendDouble(ch, (*params).data_dbl[1]);
 }
 
+int printIfExceeded(float t, float limit)
+{
+	if(t < limit)
+	{
+		printf("Simulation step took longer than (SIM_STEP - %f ms)\n", limit);
+		return 1;
+	}
+	return 0;
+}
+
 int runRiddleSimulation(CanHandler* ch)
 {
 	assert(RSIM_STEPS_NR < SIM_DATA_VEC_LEN_MAX);
@@ -300,6 +310,7 @@ int runRiddleSimulation(CanHandler* ch)
 	long long int expTmp;
 	float dt_ms;
 	clock_t t;
+	unsigned char first_it = 1;
 
 	Params params = {{0, 0}, {0.0, 0.0, 0.0}};
 	Simulation sim;
@@ -316,20 +327,18 @@ int runRiddleSimulation(CanHandler* ch)
 		t = clock();
 		runSim(&sim);
 
-		send2WithIds(ch, &params);
-
 		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // to i ten if poniżej przenieść do funkcji
 
-		if (dt_ms <= 1) // move to printIf
-		{
-			printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
-			return 1;
-		}
+		if(printIfExceeded(dt_ms, 1)) return 1;
 
 		poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			read2ints(ch, &(params.data_int[0]), &(params.data_int[1]));
+		}
+		else if(first_it)
+		{
+			first_it = 0;
 		}
 		else
 		{
@@ -337,9 +346,10 @@ int runRiddleSimulation(CanHandler* ch)
 			exit(1);
 		}
 
-		if (( SIM_STEP * 1000 - ticksToMs(clock() - t) ) < 0.5) // move to printIf
+		send2WithIds(ch, &params);
+
+		if(printIfExceeded(SIM_STEP * 1000 - ticksToMs(clock() - t), 0.5))
 		{
-			printf("Simulation step took longer than (SIM_STEP - 0.5 ms)\n");
 			return 1;
 		}
 
