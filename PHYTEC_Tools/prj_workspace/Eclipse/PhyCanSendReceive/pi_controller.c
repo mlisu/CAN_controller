@@ -26,17 +26,30 @@ double controllerOutput(double input, double out_ref)
 
 double PIDoutput(double input, double out_ref)
 {
+	static double const A = (double)KCP*TC/TCI;
+	static double const B = (double)KCP*TCD/TC;
 	static double out = 0.0;
 	static double err[3] = {0.0, 0.0, 0.0};
+	double I;
 
 	err[0] = out_ref - input;
+	I = A*err[0];
 
-	out += KCP * ( (1 + TC/TCI + TCD/TC)*err[0] - (1 + 2*TCD/TC)*err[1] + TCD/TC*err[2] );
+	out += KCP * (err[0] - err[1]) + B * (err[0] - 2*err[1] + err[2]) + I;
+
 	err[2] = err[1];
 	err[1] = err[0];
 
-	if (out >  MAX_OUT) return  MAX_OUT;
-	if (out < -MAX_OUT) return -MAX_OUT;
+	if (out >  MAX_OUT)
+	{
+		out -= I;
+		return MAX_OUT;
+	}
+	if (out < -MAX_OUT)
+	{
+		out -= I;
+		return -MAX_OUT;
+	}
 
 	return out;
 }
@@ -85,7 +98,7 @@ int riddleControl(double input, double out_ref)
 	double const err = input - out_ref; // inversed
 	double const I = A*(err + err_prev);
 
-	out += RKP*(err - err_prev) + I;
+	out += RKP*(err - err_prev) + I + 0.5;
 	err_prev = err;
 
 	if (out > RMAX_OUT)

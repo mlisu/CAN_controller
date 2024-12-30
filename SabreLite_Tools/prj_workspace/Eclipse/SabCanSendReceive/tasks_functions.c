@@ -233,7 +233,7 @@ int runSimulation(CanHandler* ch)
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
-	for (f = FIRST_F; f < (LAST_F + 0.1); f += F_STEP)
+	for (f = FIRST_F; f < (LAST_F + 0.05); f += F_STEP) // see if +0.05 works fine
 	{
 		t_end = sim.t + 10/f + TR_T; // TR_T == 1 s
 		params.data_dbl[UF_IDX] = f;
