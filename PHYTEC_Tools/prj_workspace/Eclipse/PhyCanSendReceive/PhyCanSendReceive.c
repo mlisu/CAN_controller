@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
 			// perform task:
 		// Task 1 - time measure.
 //	int const it_cnt = 1000;
+//	int const it_cnt = 10000;
 //	sendNReceiveTime(&ch, it_cnt);
 
 		// Task 2 - capacity measure - run Sab first
@@ -25,11 +26,11 @@ int main(int argc, char *argv[])
 //	sendSeries4CapacityMeasurement(&ch, it_cnt);
 
 		// Task 2b - send periodically
-//	sendPeriodically(&ch);
+	sendPeriodically(&ch);
 
 		/* Task 3 - control inertia - run Phy first */
 //	controlSuspension(&ch);
-	controlRiddle(&ch);
+//	controlRiddle(&ch);
 
 	// close program:
 	closeCanHandler(&ch);

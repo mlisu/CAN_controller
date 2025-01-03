@@ -20,10 +20,7 @@ int echo4sendNReceiveTime(CanHandler* ch)
 
 	for (; it_cnt > 0; it_cnt--)
 	{
-		if (readNSend(ch) == -1)
-		{
-			return -1;
-		}
+		readNSend(ch);
 	}
 
 	return 0;
@@ -49,6 +46,7 @@ int checkFramesBuf(char* buf, int frame_nr)
 	int result = 0;
 	for (i = 0; i <= frame_nr; i++)
 	{
+//		printf("buf[i]: %d\n", buf[i]);
 		if(buf[i] == 0)
 		{
 //			printf("Frame nr: %d not received\n", i);
@@ -57,11 +55,11 @@ int checkFramesBuf(char* buf, int frame_nr)
 	}
 	if (result == 0)
 	{
-		printf("Received all frames within 10s period\n");
+		printf("Received all frames within the period\n");
 	}
 	else
 	{
-		printf("Missed some frames with id <= frame_nr\n");
+		printf("Missed some frames\n");
 	}
 	return result;
 }
@@ -86,13 +84,15 @@ void emptyCanBuffer(CanHandler* ch, int wait_ms)
 	 */
 	while (1)
 	{
-		poll(ch->ufds, 3, wait_ms);
+		poll(ch->ufds, CAN_IDX + 1, wait_ms); // tutaj zmiast CAN_DIX + 1 było po prostu 3, spr czy działa teraz
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
-			printf("Clear buffer frame nr: %d\n", readInt32(ch));
+//			printf("Clear buffer frame nr: %d\n", readInt32(ch));
+			readInt32(ch);
 			continue;
+
 		}
-		break;
+		return;
 	}
 }
 
@@ -106,6 +106,8 @@ int readPeriodically(CanHandler* ch)
 
 	int frames_in_sec = 0;
 	int frame_nr = 0;
+	int frame_nr_max = 0;
+	int freq = 1;
 
 	char* buf = malloc(FRAMES_BUF_LEN);
 	if (buf == NULL)
@@ -113,6 +115,7 @@ int readPeriodically(CanHandler* ch)
 		printf("Memory allocation failed, aborting!\n");
 		return -1;
 	}
+	memset(buf, 0, FRAMES_BUF_LEN);
 
 	long long int expTmp;
 	pollTimer_config(ch->ufds, TIMER_IDX);
@@ -121,6 +124,7 @@ int readPeriodically(CanHandler* ch)
 	ch->ufds[2].fd = STDIN_FILENO;
 	ch->ufds[2].events = POLLIN;
 
+	int i = 0;
 	while (1)
 	{
 		poll(ch->ufds, 3, -1);
@@ -128,7 +132,13 @@ int readPeriodically(CanHandler* ch)
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			frames_in_sec++;
-			frame_nr = readInt32(ch);
+//			frame_nr = readInt32(ch);
+			read2ints(ch, &frame_nr, &freq);
+//			printf("frame_nr: %d\tfreq: %d\n", frame_nr, freq);
+			if(frame_nr > frame_nr_max)
+			{
+				frame_nr_max = frame_nr;
+			}
 
 			if (frame_nr >= FRAMES_BUF_LEN)
 			{
@@ -137,28 +147,29 @@ int readPeriodically(CanHandler* ch)
 			}
 			buf[frame_nr] = 1;
 		}
-		if (ch->ufds[1].revents & POLLIN)
+		if (ch->ufds[TIMER_IDX].revents & POLLIN)
 		{
-			read(ch->ufds[1].fd, &expTmp, sizeof(long long int));
-			printf("Frames received per sec: %d frame_nr: %d\n", frames_in_sec, frame_nr);
+			read(ch->ufds[TIMER_IDX].fd, &expTmp, sizeof(long long int));
+			printf("Frames received per sec: %d frame_nr_max: %d\n", frames_in_sec, frame_nr_max);
 			frames_in_sec = 0;
 			seconds++;
 			if (seconds == receiving_period)
 			{
-				checkFramesBuf(buf, frame_nr);
+				checkFramesBuf(buf, freq*receiving_period - 1);
 				seconds = 0;
+				frame_nr_max = 0;
 				memset(buf, 0, FRAMES_BUF_LEN);
 
 				canWrite(ch);
-
 				emptyCanBuffer(ch, WAIT_MS);
-
 				canWrite(ch);
-				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_IDX);
+
+				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_IDX); // to jest potrzebne?
 			}
 		}
-		if (ch->ufds[2].revents & POLLIN)
+		if (ch->ufds[IO_IDX].revents & POLLIN)
 		{
+//			printf("IO\n");
 			scanf("%[^\n]", stdin_buf);
 			scanf("%c", &temp_char);
 			if (*stdin_buf == 'q')
@@ -217,7 +228,7 @@ int runSimulation(CanHandler* ch)
 	float dt_ms;
 	clock_t t;
 
-	double f; // disturbance frequency, Hz
+	double f = FIRST_F; // disturbance frequency, Hz
 //	double params[PARAM_LEN] = {0.0}; // first array member is ctrl signal
 	Params params = {{0, 0}, {0.0, 0.0, 0.0}};
 	Simulation sim;
@@ -233,7 +244,7 @@ int runSimulation(CanHandler* ch)
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
-	for (f = FIRST_F; f < (LAST_F + 0.05); f += F_STEP) // see if +0.05 works fine
+	for (i = 0; i < f_nr; i++)
 	{
 		t_end = sim.t + 10/f + TR_T; // TR_T == 1 s
 		params.data_dbl[UF_IDX] = f;
@@ -272,7 +283,8 @@ int runSimulation(CanHandler* ch)
 			poll(ch->ufds, TIMER_IDX + 1, -1);
 			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
 		}
-		indices[i++] = sim.cnt;
+		indices[i] = sim.cnt;
+		f += F_STEP;
 	}
 	assert(i == f_nr);
 	simDataToFile(&sim);

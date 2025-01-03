@@ -8,7 +8,7 @@
 // common simulation parameters:
 #define SIM_DATA_VEC_LEN_MAX	50000
 #define OUT_FILE_NAME			"system_response.csv"
-#define X_LEN					6 		// vector of state variables length for inertia; 1 for inertia, 4 for suspension, 6 for riddle
+#define X_LEN					4 		// vector of state variables length for inertia; 1 for inertia, 4 for suspension, 6 for riddle
 #define SIM_STEP				0.010 	// 10 ms
 
 // suspension sim params

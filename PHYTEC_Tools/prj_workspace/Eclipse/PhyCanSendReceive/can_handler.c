@@ -2,6 +2,7 @@
 
 #include <net/if.h>
 #include <stdio.h>
+#include <stdlib.h> //exit
 #include <string.h> //strcpy
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -91,6 +92,13 @@ void send2ints(CanHandler* ch, int first, int second)
 	*(int*)ch->inOutCanFrame.data = first;
 	*((int*)ch->inOutCanFrame.data + 1) = second;
 	canWrite(ch);
+//	int i;
+//	for(i = 0; i < 8; i++)
+//	{
+//		printf("%d ", ch->inOutCanFrame.data[i]);
+//	}
+//	printf("\n");
+//	printf("first: %d\tsecond: %d\t&first: %x\t&second: %x\n", *first, *second, first, second);
 }
 
 void sendDouble(CanHandler* ch, double data_in)
@@ -118,7 +126,7 @@ ssize_t sendNReceive(CanHandler* ch)
 	}
 
 	printf("No response on a sent frame before timeout!\n");
-	return -1;
+	exit(1);
 }
 
 void sendSeries(CanHandler* ch, int32_t it_cnt)
@@ -132,38 +140,42 @@ void sendSeries(CanHandler* ch, int32_t it_cnt)
 	printf("can id: %d\n", ch->inOutCanFrame.can_id);
 }
 
-uint32_t calcExecTime(CanHandler* ch,
+double calcExecTime(CanHandler* ch,
 					  ssize_t (*fn)(CanHandler*),
 					  int32_t it_cnt)
 {
-	int32_t i;
+	int i;
 	struct timespec timeStampOld, timeStampNew;
-	uint64_t acc_time = 0;
+	long long acc = 0;
+	int curr_t;
+	int tab[40] = {0};
 
-	/*
-		Poniżej wykonuje 1x funkcję której czas jest mierzony.
-		Potem w pętli for wykonuje it_cnt razy, a więc w sumie
-		funkcja jest wykonywana it_cnt + 1 razy.
-	*/
-	if (fn(ch) == -1) //cache warm up
-	{
-		printf("\nTime calculation failed!\n");
-		return 0;
-	}
+	fn(ch); //cache warm up
 
 	clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
 	for (i = 0; i < it_cnt; i++)
 	{
-		if (fn(ch) == -1)
-		{
-			printf("\nTime calculation failed!\n");
-			return 0;
-		}
-	}
-	clock_gettime(CLOCK_MONOTONIC, &timeStampNew);
-	acc_time = execTime_count(&timeStampOld, &timeStampNew);
+		clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
+		fn(ch);
+		clock_gettime(CLOCK_MONOTONIC, &timeStampNew);
+		curr_t = execTime_count(&timeStampOld, &timeStampNew);
+		acc += curr_t;
 
-	return acc_time / it_cnt;
+		if(curr_t < 200000 || curr_t >= 1000000)
+		{
+			printf("t < 200 us || > 1 ms: %d\n", curr_t);
+			continue;
+		}
+
+		tab[(curr_t - 200000) / 20000]++;
+	}
+
+	for(i = 0; i < 40; i++)
+	{
+		printf("i: %d\ttab[i]: %d\n", i, tab[i]);
+	}
+
+	return (double)acc / it_cnt;
 }
 
 int64_t execTime_count(struct timespec* timeStartPtr, struct timespec* timeStopPtr)

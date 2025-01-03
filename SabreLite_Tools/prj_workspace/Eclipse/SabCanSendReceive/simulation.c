@@ -35,7 +35,7 @@ int inertiaModel(double t, const double x[], double dxdt[], void* params)
 
 int suspensionModel(double t, const double x[], double dxdt[], void* params)
 {
-	// M1 and z1 are for the mass above
+	// M1 and z1 are for the mass at the top
 	double const uw  = 2*M_PI * ((Params*)params)->data_dbl[UF_IDX];
 	double const u   = 0.1*sin(uw * t); // change 0.1 to A macro
 	double const up  = 0.1*SIN_W*cos(uw * t);

@@ -2,6 +2,7 @@
 
 #include <net/if.h>
 #include <stdio.h>
+#include <stdlib.h> // exit
 #include <string.h> //strcpy
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -92,7 +93,7 @@ int readSeries(CanHandler* ch, int32_t cnt)
 
 	for (i = 0; i < cnt; i++)
 	{
-		poll(ch->ufds, 1, WAIT_MS); // can removed only readCan suffices?
+		poll(ch->ufds, CAN_IDX + 1, WAIT_MS); // can removed only readCan suffices?
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			readCan(ch);
@@ -117,7 +118,7 @@ int readSeries(CanHandler* ch, int32_t cnt)
 
 ssize_t readNSend(CanHandler* ch)
 {
-	poll(ch->ufds, 1, WAIT_MS);
+	poll(ch->ufds, CAN_IDX + 1, WAIT_MS);
 	if (ch->ufds[CAN_IDX].revents & POLLIN)
 	{
 		readCan(ch);
@@ -125,7 +126,7 @@ ssize_t readNSend(CanHandler* ch)
 		return 0;
 	}
 	printf("No incoming frame before timeout\n");
-	return -1;
+	exit(1);
 }
 
 void sendInt32(CanHandler* ch, int32_t data_in)

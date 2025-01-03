@@ -42,7 +42,7 @@ ssize_t canWrite(CanHandler* ch);
 ssize_t sendNReceive(CanHandler* ch);
 void sendSeries(CanHandler* ch, int32_t it_cnt);
 
-uint32_t calcExecTime(CanHandler* ch,
+double calcExecTime(CanHandler* ch,
 					  ssize_t (*fn)(CanHandler*),
 					  int32_t it_cnt);
 int64_t execTime_count( struct timespec * timeStartPtr, struct timespec * timeStopPtr);

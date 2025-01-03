@@ -28,26 +28,27 @@ double PIDoutput(double input, double out_ref)
 {
 	static double const A = (double)KCP*TC/TCI;
 	static double const B = (double)KCP*TCD/TC;
-	static double out = 0.0;
-	static double err[3] = {0.0, 0.0, 0.0};
-	double I;
+	static double err[2] = {0.0, 0.0};
+	static double I = 0.0;
+	double i;
+	double out;
 
 	err[0] = out_ref - input;
-	I = A*err[0];
+	i = A*err[0];
+	I += i;
 
-	out += KCP * (err[0] - err[1]) + B * (err[0] - 2*err[1] + err[2]) + I;
+	out = KCP * err[0] + B * err[0] - B*err[1] + I;
 
-	err[2] = err[1];
 	err[1] = err[0];
 
 	if (out >  MAX_OUT)
 	{
-		out -= I;
+		I -= i;
 		return MAX_OUT;
 	}
 	if (out < -MAX_OUT)
 	{
-		out -= I;
+		I -= i;
 		return -MAX_OUT;
 	}
 
