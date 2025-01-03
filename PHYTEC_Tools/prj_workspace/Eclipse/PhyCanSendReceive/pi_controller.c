@@ -37,7 +37,7 @@ double PIDoutput(double input, double out_ref)
 	i = A*err[0];
 	I += i;
 
-	out = KCP * err[0] + B * err[0] - B*err[1] + I;
+	out = KCP * err[0] + B * (err[0] - err[1]) + I;
 
 	err[1] = err[0];
 
