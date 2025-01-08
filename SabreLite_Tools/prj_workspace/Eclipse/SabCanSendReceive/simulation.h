@@ -8,27 +8,21 @@
 // common simulation parameters:
 #define SIM_DATA_VEC_LEN_MAX	50000
 #define OUT_FILE_NAME			"system_response.csv"
-#define X_LEN					4 		// vector of state variables length for inertia; 1 for inertia, 4 for suspension, 6 for riddle
+#define X_LEN					4 		// vector of state variables length 4 for suspension, 6 for riddle
 #define SIM_STEP				0.010 	// 10 ms
+#define INIT_STATE 				0		// initial state of the system output
 
 // suspension sim params
-#define OUT_IDX					0		// index of system output in params
-#define U_IDX					1		// index of disturbance value in params
-#define IN_IDX					2		// index of system input in params
-#define UF_IDX					3		// index of disturbance freq in params
+#define OUT_IDX					0		 // index of system output in params
+#define U_IDX					1		 // index of disturbance value in params
+#define IN_IDX					2		 // index of system input in params
+#define UF_IDX					3		 // index of disturbance freq in params
 
-#define SIN_W					3.14/4 	// rad/s - sinus disturbance angular frequency
-#define TR_T					1		// s - transient time after disturbance f change
-#define FIRST_F					2		// Hz - starting disturbance f
-#define LAST_F					3		// Hz
-#define F_STEP					0.1		// Hz
-
-// inertia parameters:
-#define TS         5		// s; inertia system time constant
-#define KS         1		// gain of the inertia system
-#define T          0.030	// s, inertia state actualization period - 30 ms
-#define TSEN	   300		// ms, inertia state measurement period
-#define INIT_STATE 0		// initial state of the system output
+#define SIN_W					3.1416/4 // rad/s - sinus disturbance angular frequency
+#define TR_T					1		 // s - transient time after disturbance f change
+#define FIRST_F					2		 // Hz - starting disturbance f
+#define LAST_F					3		 // Hz
+#define F_STEP					0.1		 // Hz
 
 // suspension parameters:
 #define M1 290		// kg		// alternative: 300
@@ -53,7 +47,7 @@
 #define ME		32.4
 #define FREQF	19
 #define RE		0.007
-#define WE		2*M_PI*FREQF	// exciter angular frequency (Omega Exciter)
+#define WE		2*M_PI*FREQF	// exciter angular frequency
 #define FE		ME*WE*WE*RE
 // initial coordinates:
 #define XSF0	 LSF
@@ -65,22 +59,14 @@
 #define RSIM_TIME 		5 // s
 #define RSIM_STEPS_NR	(RSIM_TIME / SIM_STEP)
 
-
-typedef struct FileHandler_ // move f to Simylation, buf is unnecessary
-{
-	FILE* f;
-//	char buf[FILE_BUF_LEN];
-
-} FileHandler;
-
-// Data to be sent to / from riddle simulation model:
-typedef struct Params_
+// Data to be sent to / from simulation model:
+typedef struct
 {
 	int data_int[2];
 	double data_dbl[4];
 } Params;
 
-typedef struct Simulation_
+typedef struct
 {
 	gsl_odeiv2_system sys;
 	gsl_odeiv2_driver* d;
@@ -95,7 +81,8 @@ typedef struct Simulation_
 	float* data_vec1;
 	float* data_vec2;	 // vector for disturbance data
 	float* t_vec;	 // time vector - can be removed; it will be 0.1, 0.2, 0.3 ...
-	FileHandler fh;
+
+	FILE* f;
 
 } Simulation;
 
@@ -112,7 +99,6 @@ typedef struct RiddleParams_
 
 void simDataToFile(Simulation* const sim);
 
-int inertiaModel(double t, const double y[], double dxdt[], void* params);
 int suspensionModel(double t, const double y[], double dxdt[], void* params);
 int riddleModel(double t, const double x[], double dxdt[], void* params);
 

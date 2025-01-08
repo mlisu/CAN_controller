@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <math.h>
 
-static void initFileHandler(FileHandler* const fh)
+static void initFileHandler(FILE* f)
 {
-	fh->f = fopen(OUT_FILE_NAME, "w");
-	if (fh->f == NULL)
+	f = fopen(OUT_FILE_NAME, "w");
+	if (f == NULL)
 	{
 		printf("Could not open a file, exiting\n");
 		exit(1);
@@ -16,28 +16,20 @@ static void initFileHandler(FileHandler* const fh)
 void simDataToFile(Simulation* const sim)
 {
 	int i;
-	for (i = 0; i <= sim->cnt; i++) // <= ---> see cnt incrementation in runSim here
+	for (i = 0; i <= sim->cnt; i++)
 	{
-		fprintf(sim->fh.f, "%.4f;" , sim->t_vec[i]);
-		fprintf(sim->fh.f, "%.4f;" , sim->data_vec1[i]);
-		fprintf(sim->fh.f, "%.4f\n", sim->data_vec2[i]);
+		fprintf(sim->f, "%.4f;" , sim->t_vec[i]);
+		fprintf(sim->f, "%.4f;" , sim->data_vec1[i]);
+		fprintf(sim->f, "%.4f\n", sim->data_vec2[i]);
 	}
-	fclose(sim->fh.f);
-}
-
-int inertiaModel(double t, const double x[], double dxdt[], void* params)
-{
-	double input = *(double*)params;
-	dxdt[0] = (KS*input -x[0])/TS;
-
-	return GSL_SUCCESS;
+	fclose(sim->f);
 }
 
 int suspensionModel(double t, const double x[], double dxdt[], void* params)
 {
 	// M1 and z1 are for the mass at the top
 	double const uw  = 2*M_PI * ((Params*)params)->data_dbl[UF_IDX];
-	double const u   = 0.1*sin(uw * t); // change 0.1 to A macro
+	double const u   = 0.1*sin(uw * t);
 	double const up  = 0.1*SIN_W*cos(uw * t);
 	double const z1  = x[0];
 	double const z2  = x[1];
@@ -53,7 +45,7 @@ int suspensionModel(double t, const double x[], double dxdt[], void* params)
 			 - K1*(z2 - z1) - C1*(z2p - z1p) - F) / M2;
 
 	((Params*)params)->data_dbl[OUT_IDX] = z1;
-	((Params*)params)->data_dbl[U_IDX] = u; // is U right name for disturbance?
+	((Params*)params)->data_dbl[U_IDX] = u;
 
 	return GSL_SUCCESS;
 }
@@ -75,10 +67,8 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	double const zsf = zs + HSF*cosps - LSF * sinps;
 	double const zsr = zs + HSR*cosps + LSR * sinps;
 
-	double const zsfp = zsp - psp * (HSF*sinps + LSF*cosps); //zsp - HSF*sin(ps)*psp - LSF*cos(ps)*psp;
-	double const zsrp = zsp - psp * (HSR*sinps - LSR*cosps); //zsp - HSR*sin(ps)*psp + LSR*cos(ps)*psp;
-
-	// kxf == kxr; kzf == kzr // grawitacja to siądzie ale nie zakłądać
+	double const zsfp = zsp - psp * (HSF*sinps + LSF*cosps);
+	double const zsrp = zsp - psp * (HSR*sinps - LSR*cosps);
 
 	double const Fkfx = -KX*(xsf - XSF0);
 	double const Fkrx = -KX*(xsr - XSR0);
@@ -98,7 +88,7 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	double const Fsz = Fkfz + Fkrz + Fczs + CFczf + CFczr;
 	double const Ms	 = Mcps + Fkfx * (zsf - zs) + Fkrx * (zsr - zs)
 					   -(Fkfz + CFczf)*(xsf - xs) - (Fkrz + CFczr)*(xsr - xs);
-	// Siłą FE odpowiada sile odsrodowej
+
 	double const Fex = FE*sin(WE*t);
 	double const Fez = FE*cos(WE*t); // angle is 0 when exciter is up
 
@@ -109,19 +99,7 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	dxdt[4] = (Fez + Fsz) / MS;	// zs"
 	dxdt[5] = Ms / IS;			// ps"
 
-	// Accelerations to be sent to controller
-	/*  1) Derivative of zsfp
-	 *  	a) derivative of (HSF*sinps + LSF*cosps) == A:
-	 *  	   psp * (HSF*cosps - LSF*sinps) == B
-	 *		b) derivative of zsfp:
-	 *		   zspp = dxdt[4]; pspp = dxdt[5];
-	 *		   zspp - (pspp * A + psp * B)
-	 *	2) Derivative of zsrp
-	 *	  	a) derivative of (HSR*sinps - LSR*cosps)  == C:
-	 *	  	   psp * (HSR*cosps + LSR*sinps) == D
-	 *	  	b) derivative of zsrp:
-	 *	  	   zspp - (pspp * C + psp * D)
-	 */
+	// Accelerations to be sent to controller:
 	((Params*)params)->data_dbl[0] = dxdt[4] - dxdt[5] * (HSF*sinps + LSF*cosps)
 											 - psp*psp * (HSF*cosps - LSF*sinps);
 
@@ -137,7 +115,7 @@ void initSim(Simulation* const sim,
 			double const dt,
 			Params* const params)
 {
-	gsl_odeiv2_system sys = {model, NULL, dimension, params /*sim->params*/};
+	gsl_odeiv2_system sys = {model, NULL, dimension, params};
 	int i;
 
 	sim->cnt    = 0;
@@ -164,7 +142,7 @@ void initSim(Simulation* const sim,
 		sim->x[i] = 0.0;
 	}
 
-	initFileHandler(&sim->fh);
+	initFileHandler(&sim->f);
 	sim->data_vec1[0] = INIT_STATE;
 	sim->data_vec2[0] = INIT_STATE;
 }

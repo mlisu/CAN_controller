@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdint.h> //byte type (e.g. int8_t)
 #include <stdlib.h> //free
 #include <string.h> //memset
 #include <time.h>
@@ -14,7 +13,7 @@
 
 int echo4sendNReceiveTime(CanHandler* ch)
 {
-	int32_t it_cnt = readInt32(ch); // read is blocking - will wait for frame
+	int it_cnt = readInt32(ch);
 
 	printf("it_cnt: %d\n", it_cnt);
 
@@ -26,30 +25,14 @@ int echo4sendNReceiveTime(CanHandler* ch)
 	return 0;
 }
 
-int readSeries4CapacityMeasurement(CanHandler* ch)
-{
-	int32_t it_cnt = readInt32(ch);
-
-	printf("Series size: %d\n", it_cnt);
-
-	if (readSeries(ch, it_cnt) == -1)
-	{
-		return -1;
-	}
-
-	return 0;
-}
-
-int checkFramesBuf(char* buf, int frame_nr)
+static int checkFramesBuf(char* buf, int frame_nr)
 {
 	int i;
 	int result = 0;
 	for (i = 0; i <= frame_nr; i++)
 	{
-//		printf("buf[i]: %d\n", buf[i]);
 		if(buf[i] == 0)
 		{
-//			printf("Frame nr: %d not received\n", i);
 			result = -1;
 		}
 	}
@@ -64,19 +47,7 @@ int checkFramesBuf(char* buf, int frame_nr)
 	return result;
 }
 
-// Helper function for debugging - to remove
-void printBufSum(char* buf, int frame_nr)
-{
-	int i;
-	int acc = 0;
-	for (i = 0; i <= frame_nr; i++)
-	{
-		acc += buf[i];
-	}
-	printf("buf sum: %d\n", acc);
-}
-
-void emptyCanBuffer(CanHandler* ch, int wait_ms)
+static void emptyCanBuffer(CanHandler* ch, int wait_ms)
 {
 	/*
 	 * Assumption that if WAIT_MS == 300 ms has passed without receiving a frame,
@@ -84,10 +55,9 @@ void emptyCanBuffer(CanHandler* ch, int wait_ms)
 	 */
 	while (1)
 	{
-		poll(ch->ufds, CAN_IDX + 1, wait_ms); // tutaj zmiast CAN_DIX + 1 było po prostu 3, spr czy działa teraz
+		poll(ch->ufds, CAN_IDX + 1, wait_ms);
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
-//			printf("Clear buffer frame nr: %d\n", readInt32(ch));
 			readInt32(ch);
 			continue;
 
@@ -100,6 +70,7 @@ int readPeriodically(CanHandler* ch)
 {
 	int const receiving_period = 5; // seconds
 	int seconds = 0;
+	long long expTmp;
 
 	char stdin_buf[20] = {0};
 	char temp_char;
@@ -117,14 +88,12 @@ int readPeriodically(CanHandler* ch)
 	}
 	memset(buf, 0, FRAMES_BUF_LEN);
 
-	long long int expTmp;
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
 	ch->ufds[2].fd = STDIN_FILENO;
 	ch->ufds[2].events = POLLIN;
 
-	int i = 0;
 	while (1)
 	{
 		poll(ch->ufds, 3, -1);
@@ -132,9 +101,8 @@ int readPeriodically(CanHandler* ch)
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			frames_in_sec++;
-//			frame_nr = readInt32(ch);
 			read2ints(ch, &frame_nr, &freq);
-//			printf("frame_nr: %d\tfreq: %d\n", frame_nr, freq);
+
 			if(frame_nr > frame_nr_max)
 			{
 				frame_nr_max = frame_nr;
@@ -149,7 +117,7 @@ int readPeriodically(CanHandler* ch)
 		}
 		if (ch->ufds[TIMER_IDX].revents & POLLIN)
 		{
-			read(ch->ufds[TIMER_IDX].fd, &expTmp, sizeof(long long int));
+			read(ch->ufds[TIMER_IDX].fd, &expTmp, sizeof(long long));
 			printf("Frames received per sec: %d frame_nr_max: %d\n", frames_in_sec, frame_nr_max);
 			frames_in_sec = 0;
 			seconds++;
@@ -164,12 +132,11 @@ int readPeriodically(CanHandler* ch)
 				emptyCanBuffer(ch, WAIT_MS);
 				canWrite(ch);
 
-				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_IDX); // to jest potrzebne?
+				pollTimer_set(NANO_IN_SEC, NANO_IN_SEC, ch->ufds, TIMER_IDX);
 			}
 		}
 		if (ch->ufds[IO_IDX].revents & POLLIN)
 		{
-//			printf("IO\n");
 			scanf("%[^\n]", stdin_buf);
 			scanf("%c", &temp_char);
 			if (*stdin_buf == 'q')
@@ -184,12 +151,12 @@ int readPeriodically(CanHandler* ch)
 	return 0;
 }
 
-float ticksToMs(clock_t ticks)
+static float ticksToMs(clock_t ticks)
 {
 	return (float)ticks / CLOCKS_PER_SEC * 1000;
 }
 
-int* allocateArray(int cnt)
+static int* allocateArray(int cnt)
 {
 	int* ret = malloc(cnt*sizeof(int));
 	if (ret == NULL)
@@ -200,7 +167,7 @@ int* allocateArray(int cnt)
 	return ret;
 }
 
-void computeRMSratio(Simulation* sim, int* indices, int cnt)
+static void computeRMSratio(Simulation* sim, int* indices, int cnt)
 {
 	int i, j;
 	int sampl_nr;
@@ -221,91 +188,7 @@ void computeRMSratio(Simulation* sim, int* indices, int cnt)
 	}
 }
 
-int runSimulation(CanHandler* ch)
-{
-	int i = 0;
-	long long int expTmp;
-	float dt_ms;
-	clock_t t;
-
-	double f = FIRST_F; // disturbance frequency, Hz
-//	double params[PARAM_LEN] = {0.0}; // first array member is ctrl signal
-	Params params = {{0, 0}, {0.0, 0.0, 0.0}};
-	Simulation sim;
-	double t_end;
-
-	int f_nr = (LAST_F - FIRST_F) / F_STEP + 1;
-	int* indices = allocateArray(f_nr);
-
-	srand(time(NULL));
-//	initSim(&sim, inertiaModel, X_LEN, SIM_STEP, params);
-	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, &params);
-
-	pollTimer_config(ch->ufds, TIMER_IDX);
-	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
-
-	for (i = 0; i < f_nr; i++)
-	{
-		t_end = sim.t + 10/f + TR_T; // TR_T == 1 s
-		params.data_dbl[UF_IDX] = f;
-		while (sim.t < t_end)
-		{
-			t = clock();
-			runSim(&sim);
-
-			sendDouble(ch, params.data_dbl[OUT_IDX]); // change to sendFloat - all date to be changed to float
-
-			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
-//			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
-			if (dt_ms <= 1)
-			{
-				printf("Simulation step took longer than (SIM_STEP - 1 ms)\n");
-				return 1;
-			}
-
-			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
-			if (ch->ufds[CAN_IDX].revents & POLLIN)
-			{
-				params.data_dbl[IN_IDX] = readDouble(ch); // change to readFloat
-			}
-			else
-			{
-				printf("Control signal has not come.\n"); // here recovering can be implemented
-				exit(1);
-			}
-
-			if (( SIM_STEP * 1000 - ticksToMs(clock() - t) ) < 0.5)
-			{
-				printf("Simulation step took longer than (SIM_STEP - 0.5 ms)\n");
-				return 1;
-			}
-
-			poll(ch->ufds, TIMER_IDX + 1, -1);
-			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
-		}
-		indices[i] = sim.cnt;
-		f += F_STEP;
-	}
-	assert(i == f_nr);
-	simDataToFile(&sim);
-	computeRMSratio(&sim, indices, f_nr);
-
-	deleteSim(&sim);
-	free(indices);
-
-	return 0;
-}
-
-void send2WithIds(CanHandler* ch, Params* params)
-{
-	static long long i = 0;
-	ch->inOutCanFrame.can_id = i++;
-	sendDouble(ch, (*params).data_dbl[0]);
-	ch->inOutCanFrame.can_id = i++;
-	sendDouble(ch, (*params).data_dbl[1]);
-}
-
-int printIfExceeded(float t, float limit)
+static int printIfExceeded(float t, float limit)
 {
 	if(t < limit)
 	{
@@ -315,11 +198,89 @@ int printIfExceeded(float t, float limit)
 	return 0;
 }
 
+int runSimulation(CanHandler* ch)
+{
+	int i;
+	long long int expTmp;
+	float dt_ms;
+	clock_t t;
+
+	double f = FIRST_F; // disturbance frequency, Hz
+	Params params = {{0, 0}, {0.0, 0.0, 0.0}};
+	Simulation sim;
+	double t_end;
+
+	int f_nr = (LAST_F - FIRST_F) / F_STEP + 1.05;
+	printf("f_nr: %d\n", f_nr);
+	int* indices = allocateArray(f_nr);
+
+	srand(time(NULL));
+	initSim(&sim, suspensionModel, X_LEN, SIM_STEP, &params);
+
+	pollTimer_config(ch->ufds, TIMER_IDX);
+	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
+
+	for (i = 0; i < f_nr; i++)
+	{
+		t_end = sim.t + 10/f + TR_T;
+		params.data_dbl[UF_IDX] = f;
+		while (sim.t < t_end)
+		{
+			t = clock();
+			runSim(&sim);
+
+			sendDouble(ch, params.data_dbl[OUT_IDX]);
+
+			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
+//			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
+			if(printIfExceeded(dt_ms, 1)) return 1;
+
+			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
+			if (ch->ufds[CAN_IDX].revents & POLLIN)
+			{
+				params.data_dbl[IN_IDX] = readDouble(ch);
+			}
+			else
+			{
+				printf("Control signal has not come.\n");
+				return 1;
+			}
+
+			if(printIfExceeded(SIM_STEP * 1000 - ticksToMs(clock() - t), 0.5))
+			{
+				return 1;
+			}
+
+			poll(ch->ufds, TIMER_IDX + 1, -1);
+			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
+		}
+		indices[i] = sim.cnt;
+		f += F_STEP;
+	}
+	assert(i == f_nr); // to remove
+	simDataToFile(&sim);
+	computeRMSratio(&sim, indices, f_nr);
+
+	deleteSim(&sim);
+	free(indices);
+
+	return 0;
+}
+
+static void send2WithIds(CanHandler* ch, Params* params)
+{
+	static long long i = 0;
+	ch->inOutCanFrame.can_id = i++;
+	sendDouble(ch, (*params).data_dbl[0]);
+	ch->inOutCanFrame.can_id = i++;
+	sendDouble(ch, (*params).data_dbl[1]);
+}
+
 int runRiddleSimulation(CanHandler* ch)
 {
 	assert(RSIM_STEPS_NR < SIM_DATA_VEC_LEN_MAX);
 	int i = 0;
-	long long int expTmp;
+	long long expTmp;
 	float dt_ms;
 	clock_t t;
 	unsigned char first_it = 1;
@@ -339,7 +300,7 @@ int runRiddleSimulation(CanHandler* ch)
 		t = clock();
 		runSim(&sim);
 
-		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t); // to i ten if poniżej przenieść do funkcji
+		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
 
 		if(printIfExceeded(dt_ms, 1)) return 1;
 
@@ -354,8 +315,8 @@ int runRiddleSimulation(CanHandler* ch)
 		}
 		else
 		{
-			printf("Control signal has not come.\n"); // here recovering can be implemented
-			exit(1);
+			printf("Control signal has not come.\n");
+			return 1;
 		}
 
 		send2WithIds(ch, &params);

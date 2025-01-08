@@ -1,28 +1,8 @@
-#include "pi_controller.h"
+#include "controller.h"
 
 #include <math.h>
 
 #include <stdio.h>
-
-double controllerOutput(double input, double out_ref)
-{
-	static double err_prev = 0;
-	static double integral = 0;
-
-	double out;
-	double const err = out_ref - input;
-
-	integral += TC/TCI/2*(err + err_prev);
-
-	err_prev = err;
-
-	out = KCP*(err + integral);
-
-	if (out >  MAX_OUT) return  MAX_OUT;
-	if (out < -MAX_OUT) return -MAX_OUT;
-
-	return out;
-}
 
 double PIDoutput(double input, double out_ref)
 {
@@ -55,41 +35,6 @@ double PIDoutput(double input, double out_ref)
 	return out;
 }
 
-double PIDoutputTustin(double input, double out_ref)
-{
-	static double const A = (double)KCP*TC/2/TCI;
-	static double const B = (double)KCP*2*TCD/TC;
-	static double out[3] = {0.0, 0.0, 0.0}; // is used also as out_prev_prev
-	static double err[3] = {0.0, 0.0, 0.0};
-	double I;
-
-	err[0] = out_ref - input;
-	I = A * (err[0] + 2*err[1] + err[2]);
-
-	out[0] = out[2] + KCP *(err[0] - err[2]) + I + 		// P + I
-			 	 	  B * (err[0] - 2*err[1] + err[2]); // D
-
-	out[2] = out[1];
-	out[1] = out[0];
-
-	err[2] = err[1];
-	err[1] = err[0];
-
-	if (out[0] > MAX_OUT)
-	{
-		out[1] -= I;
-		return MAX_OUT;
-	}
-	if (out[0] < -MAX_OUT)
-	{
-		out[1] -= I;
-		return -MAX_OUT;
-	}
-
-	return out[0];
-}
-
-// TODO make generic fn for PI suspension and riddle by taking 3rd arg of struct with PI params
 int riddleControl(double input, double out_ref)
 {
 	static double const A = (double)RKP*TC/RTI/2;
@@ -132,7 +77,6 @@ double computeRMS(double acc_front, double acc_rear)
 		if(in_buf == SAMPLS) flag = 1;
 	}
 
-	// adding all array elements can be more accurate (we skip one float operation -> "-=")
 	sum -= rmss[insert_idx];
 	rmss[insert_idx] = acc*acc;
 	sum += rmss[insert_idx];
@@ -142,7 +86,6 @@ double computeRMS(double acc_front, double acc_rear)
 		insert_idx = 0;
 	}
 //	printf("sum: %f\trmss[insert_idx]: %f\tsqrt: %f\n", sum, rmss[insert_idx], sqrt(sum / in_buf));
-
 	return sqrt(sum / in_buf);
 }
 

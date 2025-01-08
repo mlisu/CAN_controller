@@ -6,15 +6,66 @@
 #include <string.h> // memset
 
 #include "can_handler.h"
-#include "pi_controller.h"
+#include "controller.h"
 #include "timer.h"
-/*
-	Podaje tutaj it_cnt jako int mimo że calcExecTime przyjmuje size_t
-	Jest tak bo calcExecTime przyjmując size_t jest bardziej ogólna a tutaj
-	jest wygodniej korzystać z inta bo wystarczy jedna funkcja zamieniająca
-	liczbę na data i odwrotnie (int32).
-*/
-int sendNReceiveTime(CanHandler* ch, int32_t it_cnt)
+
+static double calcExecTime(CanHandler* ch,
+						   ssize_t (*fn)(CanHandler*),
+						   int it_cnt)
+{
+	int i;
+	struct timespec timeStampOld, timeStampNew;
+	long long acc = 0;
+	int curr_t;
+	int tab[40] = {0};
+
+	fn(ch); //cache warm up
+
+	clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
+	for (i = 0; i < it_cnt; i++)
+	{
+		clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
+		fn(ch);
+		clock_gettime(CLOCK_MONOTONIC, &timeStampNew);
+		curr_t = execTime_count(&timeStampOld, &timeStampNew);
+		acc += curr_t;
+
+		if(curr_t < 200000 || curr_t >= 1000000)
+		{
+			printf("t < 200 us || > 1 ms: %d\n", curr_t);
+			continue;
+		}
+
+		tab[(curr_t - 200000) / 20000]++;
+	}
+
+	for(i = 0; i < 40; i++)
+	{
+		printf("i: %d\ttab[i]: %d\n", i, tab[i]);
+	}
+
+	return (double)acc / it_cnt;
+}
+
+static long long execTime_count(struct timespec* timeStartPtr,
+								struct timespec* timeStopPtr)
+{
+	long long cpt_ns, cpt_s;
+
+	cpt_s = (timeStopPtr->tv_sec - timeStartPtr->tv_sec) * NANO_IN_SEC;
+	if (timeStopPtr->tv_nsec > timeStartPtr->tv_nsec)
+	{
+		cpt_ns = timeStopPtr->tv_nsec - timeStartPtr->tv_nsec;
+	}
+	else
+	{
+		cpt_s -= NANO_IN_SEC;
+		cpt_ns = NANO_IN_SEC + timeStopPtr->tv_nsec - timeStartPtr->tv_nsec;
+	}
+	return (cpt_s + cpt_ns);
+}
+
+int sendNReceiveTime(CanHandler* ch, int it_cnt)
 {
 	double execTime;
 
@@ -26,12 +77,6 @@ int sendNReceiveTime(CanHandler* ch, int32_t it_cnt)
 	return 0;
 }
 
-// poniższą funkcję usunąć jak nie będzie potrzebna do treści pracy
-void sendSeries4CapacityMeasurement(CanHandler* ch, int32_t it_cnt)
-{
-	sendInt32(ch, it_cnt);
-	sendSeries(ch, it_cnt);
-}
 /*
 Sabre has a heap array of length (in bytes) equal to assumed max number of frames sent
 within 10s (arbitrary chosen period).
@@ -63,7 +108,6 @@ void sendPeriodically(CanHandler* ch)
 		{
 			read(ch->ufds[1].fd, &expTmp, sizeof(long long int));
 			send2ints(ch, frame_nr, freq);
-//			sendInt32(ch, frame_nr);
 			frame_nr++;
 		}
 		if (ch->ufds[0].revents & POLLIN)
@@ -84,7 +128,11 @@ void sendPeriodically(CanHandler* ch)
 				break;
 			}
 			freq = atoi(stdin_buf);
-			freq = (freq > max_freq) ? max_freq : freq;
+			if(freq > max_freq)
+			{
+				freq = max_freq;
+			}
+
 			printf("Frequency set to: %d\n", freq);
 			pollTimer_set(NANO_IN_SEC / freq, NANO_IN_SEC / freq, ch->ufds);
 			memset(stdin_buf, 0, 20);
@@ -92,7 +140,7 @@ void sendPeriodically(CanHandler* ch)
 	}
 }
 
-void controlSuspensionImpl(CanHandler* ch, double out_ref)
+static void controlSuspensionImpl(CanHandler* ch, double out_ref)
 {
 	sendDouble(ch, PIDoutput(readDouble(ch), out_ref));
 }
@@ -105,8 +153,10 @@ int printIf(int condition)
 	}
 	return condition;
 }
-double diff = 0.0;
-void controlRiddleImpl(CanHandler* ch, double out_ref)
+
+static double diff = 0.0;
+
+static void controlRiddleImpl(CanHandler* ch, double out_ref)
 {
 	static double accf = 0.0;
 	double acc;
@@ -130,14 +180,16 @@ void controlRiddleImpl(CanHandler* ch, double out_ref)
 
 	send2ints(ch, ctrl, ctrl);
 
-	printf("RMS: %f\tcontrol: %d\n", rms, ctrl);
+//	printf("RMS: %f\tcontrol: %d\n", rms, ctrl);
 
 	diff += (rms - ROUT_REF) * (rms - ROUT_REF);
 }
 
-void control(CanHandler* ch, double const out_ref, void (*fn)(CanHandler*, double out_ref))
+static void control(CanHandler* ch,
+					double const out_ref,
+					void (*fn)(CanHandler* ch, double out_ref))
 {
-	char stdin_buf[20] = {0}; // move stdin stuff to some fn, vars maybe to can handler
+	char stdin_buf[20] = {0};
 	char temp_char;
 
 	ch->ufds[2].fd = STDIN_FILENO;

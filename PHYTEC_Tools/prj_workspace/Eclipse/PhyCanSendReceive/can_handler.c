@@ -67,10 +67,10 @@ ssize_t readCan(CanHandler* ch)
 	return read(ch->canSocket, &ch->inOutCanFrame, sizeof(struct can_frame));
 }
 
-int32_t readInt32(CanHandler* ch)
+int readInt(CanHandler* ch)
 {
 	readCan(ch);
-	return *(int32_t*)ch->inOutCanFrame.data;
+	return *(int*)ch->inOutCanFrame.data;
 }
 
 double readDouble(CanHandler* ch)
@@ -79,10 +79,10 @@ double readDouble(CanHandler* ch)
 	return *(double*)ch->inOutCanFrame.data;
 }
 
-void sendInt32(CanHandler* ch, int32_t data_in)
+void sendInt(CanHandler* ch, int data_in)
 {
-	ch->inOutCanFrame.can_dlc = 4;
-	*(int32_t*)ch->inOutCanFrame.data = data_in;
+	ch->inOutCanFrame.can_dlc = sizeof(int);
+	*(int*)ch->inOutCanFrame.data = data_in;
 	canWrite(ch);
 }
 
@@ -92,13 +92,6 @@ void send2ints(CanHandler* ch, int first, int second)
 	*(int*)ch->inOutCanFrame.data = first;
 	*((int*)ch->inOutCanFrame.data + 1) = second;
 	canWrite(ch);
-//	int i;
-//	for(i = 0; i < 8; i++)
-//	{
-//		printf("%d ", ch->inOutCanFrame.data[i]);
-//	}
-//	printf("\n");
-//	printf("first: %d\tsecond: %d\t&first: %x\t&second: %x\n", *first, *second, first, second);
 }
 
 void sendDouble(CanHandler* ch, double data_in)
@@ -115,10 +108,9 @@ ssize_t canWrite(CanHandler* ch)
 
 ssize_t sendNReceive(CanHandler* ch)
 {
-	ch->inOutCanFrame.can_id = 111;
 	canWrite(ch);
 
-	poll(ch->ufds, 1, WAIT_MS); // można usunąc
+	poll(ch->ufds, 1, WAIT_MS);
 	if (ch->ufds[0].revents & POLLIN)
 	{
 		readCan(ch);
@@ -128,82 +120,3 @@ ssize_t sendNReceive(CanHandler* ch)
 	printf("No response on a sent frame before timeout!\n");
 	exit(1);
 }
-
-void sendSeries(CanHandler* ch, int32_t it_cnt)
-{
-	int i;
-	for (i = 0; i < it_cnt; i++)
-	{
-		ch->inOutCanFrame.can_id = i;
-		canWrite(ch);
-	}
-	printf("can id: %d\n", ch->inOutCanFrame.can_id);
-}
-
-double calcExecTime(CanHandler* ch,
-					  ssize_t (*fn)(CanHandler*),
-					  int32_t it_cnt)
-{
-	int i;
-	struct timespec timeStampOld, timeStampNew;
-	long long acc = 0;
-	int curr_t;
-	int tab[40] = {0};
-
-	fn(ch); //cache warm up
-
-	clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
-	for (i = 0; i < it_cnt; i++)
-	{
-		clock_gettime(CLOCK_MONOTONIC, &timeStampOld);
-		fn(ch);
-		clock_gettime(CLOCK_MONOTONIC, &timeStampNew);
-		curr_t = execTime_count(&timeStampOld, &timeStampNew);
-		acc += curr_t;
-
-		if(curr_t < 200000 || curr_t >= 1000000)
-		{
-			printf("t < 200 us || > 1 ms: %d\n", curr_t);
-			continue;
-		}
-
-		tab[(curr_t - 200000) / 20000]++;
-	}
-
-	for(i = 0; i < 40; i++)
-	{
-		printf("i: %d\ttab[i]: %d\n", i, tab[i]);
-	}
-
-	return (double)acc / it_cnt;
-}
-
-int64_t execTime_count(struct timespec* timeStartPtr, struct timespec* timeStopPtr)
-{
-	int64_t cpt_ns, cpt_s;
-
-	cpt_s = (timeStopPtr->tv_sec - timeStartPtr->tv_sec) * NANO_IN_SEC;
-	if (timeStopPtr->tv_nsec > timeStartPtr->tv_nsec)
-	{
-		cpt_ns = timeStopPtr->tv_nsec - timeStartPtr->tv_nsec;
-	}
-	else
-	{
-		cpt_s -= NANO_IN_SEC;
-		cpt_ns = NANO_IN_SEC + timeStopPtr->tv_nsec - timeStartPtr->tv_nsec;
-	}
-	return (cpt_s + cpt_ns);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-

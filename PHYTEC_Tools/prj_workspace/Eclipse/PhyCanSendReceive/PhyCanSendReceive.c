@@ -15,20 +15,14 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-			// perform task:
+	// perform task:
 		// Task 1 - time measure.
-//	int const it_cnt = 1000;
-//	int const it_cnt = 10000;
-//	sendNReceiveTime(&ch, it_cnt);
+//	sendNReceiveTime(&ch, 10000);
 
-		// Task 2 - capacity measure - run Sab first
-//	int const it_cnt = 200;
-//	sendSeries4CapacityMeasurement(&ch, it_cnt);
-
-		// Task 2b - send periodically
+		// Task 2 - send periodically for capacity measurement
 	sendPeriodically(&ch);
 
-		/* Task 3 - control inertia - run Phy first */
+		/* Task 3 - control - run Phy first */
 //	controlSuspension(&ch);
 //	controlRiddle(&ch);
 

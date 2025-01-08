@@ -5,11 +5,7 @@
 
 int echo4sendNReceiveTime(CanHandler* ch);
 
-int readSeries4CapacityMeasurement(CanHandler* ch);
-
 int readPeriodically(CanHandler* ch);
-
-int runInertiaSimulation(CanHandler* ch);
 
 int runSimulation(CanHandler* ch);
 

@@ -62,10 +62,10 @@ int canConfig()
 	return l_canSocket;
 }
 
-int32_t readInt32(CanHandler* ch)
+int readInt(CanHandler* ch)
 {
 	readCan(ch);
-	return *(int32_t*)ch->inOutCanFrame.data;
+	return *(int*)ch->inOutCanFrame.data;
 }
 
 void read2ints(CanHandler* ch, int* first, int* second)
@@ -86,36 +86,6 @@ ssize_t readCan(CanHandler* ch)
 	return read(ch->canSocket, &ch->inOutCanFrame, sizeof(struct can_frame));
 }
 
-int readSeries(CanHandler* ch, int32_t cnt)
-{
-	int32_t i;
-	int32_t left2receive = cnt;
-
-	for (i = 0; i < cnt; i++)
-	{
-		poll(ch->ufds, CAN_IDX + 1, WAIT_MS); // can removed only readCan suffices?
-		if (ch->ufds[CAN_IDX].revents & POLLIN)
-		{
-			readCan(ch);
-			printf("%d Frame id: %d\n", i, ch->inOutCanFrame.can_id);
-			if (ch->inOutCanFrame.can_id != i)
-			{
-				printf("Wrong frames order!\n");
-				return -1;
-			}
-			left2receive--;
-		}
-	}
-
-	if (left2receive)
-	{
-		printf("Missed %u frame(s) from series!\n", left2receive);
-		return -1;
-	}
-
-	return 0;
-}
-
 ssize_t readNSend(CanHandler* ch)
 {
 	poll(ch->ufds, CAN_IDX + 1, WAIT_MS);
@@ -129,16 +99,16 @@ ssize_t readNSend(CanHandler* ch)
 	exit(1);
 }
 
-void sendInt32(CanHandler* ch, int32_t data_in)
+void sendInt(CanHandler* ch, int data_in)
 {
-	ch->inOutCanFrame.can_dlc = 4;
-	*(int32_t*)ch->inOutCanFrame.data = data_in;
+	ch->inOutCanFrame.can_dlc = sizeof(int);
+	*(int*)ch->inOutCanFrame.data = data_in;
 	canWrite(ch);
 }
 
 void sendDouble(CanHandler* ch, double data_in)
 {
-	ch->inOutCanFrame.can_dlc = 8;
+	ch->inOutCanFrame.can_dlc = sizeof(double);
 	*(double*)ch->inOutCanFrame.data = data_in;
 	canWrite(ch);
 }

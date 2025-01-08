@@ -6,7 +6,9 @@ int pollTimer_config(struct pollfd * ufds, int ufds_idx)
         int tfd;
 
         if ((tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK )) < 0)
-                perror("timerfd create error");
+        {
+        	perror("timerfd create error");
+        }
 
         ufds[ufds_idx].fd = tfd;
         ufds[ufds_idx].events = POLLIN;
@@ -40,11 +42,11 @@ int pollTimer_set(const long long tValueNs,
         return 0;
 }
 
-void tryReadTimer(struct pollfd* ufd, long long int* expTmp)
+void tryReadTimer(struct pollfd* ufd, long long* expTmp)
 {
 	if (ufd->revents & POLLIN)
 	{
-		read(ufd->fd, expTmp, sizeof(long long int));
+		read(ufd->fd, expTmp, sizeof(long long));
 	}
 }
 

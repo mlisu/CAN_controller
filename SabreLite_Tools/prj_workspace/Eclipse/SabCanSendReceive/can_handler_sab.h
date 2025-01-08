@@ -3,7 +3,6 @@
 
 #include <linux/can.h>
 #include <stddef.h> //size_t
-#include <stdint.h> //byte type (e.g. int8_t)
 #include <sys/poll.h>
 #include <time.h>
 #include <unistd.h> //write & read
@@ -29,14 +28,13 @@ int initCanHandler(CanHandler* ch);
 void closeCanHandler(CanHandler* ch);
 int canConfig();
 
-int32_t readInt32(CanHandler* ch);
+int readInt(CanHandler* ch);
 void read2ints(CanHandler* ch, int* first, int* second);
 double readDouble(CanHandler* ch);
 ssize_t readCan(CanHandler* ch);
-int readSeries(CanHandler* ch, int32_t cnt);
 ssize_t readNSend(CanHandler* ch);
 
-void sendInt32(CanHandler* ch, int32_t data_in);
+void sendInt(CanHandler* ch, int data_in);
 void sendDouble(CanHandler* ch, double data_in);
 ssize_t canWrite(CanHandler* ch);
 
