@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <math.h>
 
-static void initFileHandler(FILE* f)
+static void initFileHandler(FILE** f)
 {
-	f = fopen(OUT_FILE_NAME, "w");
-	if (f == NULL)
+	*f = fopen(OUT_FILE_NAME, "w");
+	if (*f == NULL)
 	{
 		printf("Could not open a file, exiting\n");
 		exit(1);
@@ -20,7 +20,8 @@ void simDataToFile(Simulation* const sim)
 	{
 		fprintf(sim->f, "%.4f;" , sim->t_vec[i]);
 		fprintf(sim->f, "%.4f;" , sim->data_vec1[i]);
-		fprintf(sim->f, "%.4f\n", sim->data_vec2[i]);
+		fprintf(sim->f, "%.4f;", sim->data_vec2[i]);
+		fprintf(sim->f, "%.4f\n", sim->data_vec3[i]);
 	}
 	fclose(sim->f);
 }
@@ -106,6 +107,9 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	((Params*)params)->data_dbl[1] = dxdt[4] - dxdt[5] * (HSR*sinps - LSR*cosps)
 											 - psp*psp * (HSR*cosps + LSR*sinps);
 
+	// save control signal:
+	((Params*)params)->data_dbl[2] = (double)((Params*)params)->data_int[0];
+
 	return GSL_SUCCESS;
 }
 
@@ -130,8 +134,12 @@ void initSim(Simulation* const sim,
 
 	sim->data_vec1 = malloc(SIM_DATA_VEC_LEN_MAX * sizeof(float));
 	sim->data_vec2 = malloc(SIM_DATA_VEC_LEN_MAX * sizeof(float));
+	sim->data_vec3 = malloc(SIM_DATA_VEC_LEN_MAX * sizeof(float));
 	sim->t_vec = malloc(SIM_DATA_VEC_LEN_MAX * sizeof(float));
-	if (sim->data_vec1 == NULL || sim->data_vec2 == NULL || sim->t_vec == NULL)
+	if (sim->data_vec1 == NULL
+		|| sim->data_vec2 == NULL
+		|| sim->data_vec3 == NULL
+		|| sim->t_vec == NULL)
 	{
 		printf("initSim failed to allocate memory.\n");
 		exit(1);
@@ -143,8 +151,9 @@ void initSim(Simulation* const sim,
 	}
 
 	initFileHandler(&sim->f);
-	sim->data_vec1[0] = INIT_STATE;
-	sim->data_vec2[0] = INIT_STATE;
+	sim->data_vec1[0] = 0.0;
+	sim->data_vec2[0] = 0.0;
+	sim->data_vec3[0] = 0.0;
 }
 
 int runSim(Simulation* const sim)
@@ -166,6 +175,7 @@ int runSim(Simulation* const sim)
     sim->t_end       	     += sim->dt;
     sim->data_vec1[sim->cnt] = (float)sim->params->data_dbl[0]; // for suspension 0 is z1 position (upper mass position) and 1 is disturbance
     sim->data_vec2[sim->cnt] = (float)sim->params->data_dbl[1];	// for riddle these are acc front and rear
+    sim->data_vec3[sim->cnt] = (float)sim->params->data_dbl[2]; // control
     sim->t_vec[sim->cnt]	 = (float)sim->t;
 
     return status;

@@ -20,11 +20,11 @@ int main(int argc, char *argv[])
 //	sendNReceiveTime(&ch, 10000);
 
 		// Task 2 - send periodically for capacity measurement
-	sendPeriodically(&ch);
+//	sendPeriodically(&ch);
 
 		/* Task 3 - control - run Phy first */
 //	controlSuspension(&ch);
-//	controlRiddle(&ch);
+	controlRiddle(&ch);
 
 	// close program:
 	closeCanHandler(&ch);

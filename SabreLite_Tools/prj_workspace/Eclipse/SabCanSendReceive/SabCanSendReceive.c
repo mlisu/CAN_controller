@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 	// perform task:
 		/* Task 1 - time measure. Run program first on Sabre then Phy,
 	because sabre calls blocking read CAN first */
-	echo4sendNReceiveTime(&ch);
+//	echo4sendNReceiveTime(&ch);
 
 		/* Task 2 Read periodically for capacity
 	measurement - run first on Sab*/
@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 
 		/* Task 3 - simulation - run Phy first */
 //	runSimulation(&ch);
-//	runRiddleSimulation(&ch);
+	runRiddleSimulation(&ch);
 
 	// close program:
 	closeCanHandler(&ch);

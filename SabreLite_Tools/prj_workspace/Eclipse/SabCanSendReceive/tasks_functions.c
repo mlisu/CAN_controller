@@ -13,7 +13,7 @@
 
 int echo4sendNReceiveTime(CanHandler* ch)
 {
-	int it_cnt = readInt32(ch);
+	int it_cnt = readInt(ch);
 
 	printf("it_cnt: %d\n", it_cnt);
 
@@ -58,7 +58,7 @@ static void emptyCanBuffer(CanHandler* ch, int wait_ms)
 		poll(ch->ufds, CAN_IDX + 1, wait_ms);
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
-			readInt32(ch);
+			readInt(ch);
 			continue;
 
 		}
@@ -201,12 +201,13 @@ static int printIfExceeded(float t, float limit)
 int runSimulation(CanHandler* ch)
 {
 	int i;
+	int first_it = 1;
 	long long int expTmp;
 	float dt_ms;
 	clock_t t;
 
 	double f = FIRST_F; // disturbance frequency, Hz
-	Params params = {{0, 0}, {0.0, 0.0, 0.0}};
+	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0}};
 	Simulation sim;
 	double t_end;
 
@@ -229,10 +230,8 @@ int runSimulation(CanHandler* ch)
 			t = clock();
 			runSim(&sim);
 
-			sendDouble(ch, params.data_dbl[OUT_IDX]);
-
 			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
-//			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params[IN_IDX], sim.x[OUT_IDX], params[U_IDX], f, sim.cnt);
+			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params.data_dbl[IN_IDX], sim.x[OUT_IDX], params.data_dbl[U_IDX], f, sim.cnt);
 			if(printIfExceeded(dt_ms, 1)) return 1;
 
 			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
@@ -240,11 +239,17 @@ int runSimulation(CanHandler* ch)
 			{
 				params.data_dbl[IN_IDX] = readDouble(ch);
 			}
+			else if(first_it)
+			{
+				first_it = 0;
+			}
 			else
 			{
 				printf("Control signal has not come.\n");
 				return 1;
 			}
+
+			sendDouble(ch, params.data_dbl[OUT_IDX]);
 
 			if(printIfExceeded(SIM_STEP * 1000 - ticksToMs(clock() - t), 0.5))
 			{
@@ -257,7 +262,7 @@ int runSimulation(CanHandler* ch)
 		indices[i] = sim.cnt;
 		f += F_STEP;
 	}
-	assert(i == f_nr); // to remove
+	assert(i == f_nr);
 	simDataToFile(&sim);
 	computeRMSratio(&sim, indices, f_nr);
 
@@ -285,7 +290,7 @@ int runRiddleSimulation(CanHandler* ch)
 	clock_t t;
 	unsigned char first_it = 1;
 
-	Params params = {{0, 0}, {0.0, 0.0, 0.0}};
+	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0}};
 	Simulation sim;
 
 	srand(time(NULL));
@@ -308,6 +313,17 @@ int runRiddleSimulation(CanHandler* ch)
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			read2ints(ch, &(params.data_int[0]), &(params.data_int[1]));
+			if(i < 250)
+			{
+				params.data_int[0] = 2600;
+				params.data_int[1] = 2600;
+			}
+			else
+			{
+				params.data_int[0] = 600;
+				params.data_int[1] = 600;
+			}
+
 		}
 		else if(first_it)
 		{

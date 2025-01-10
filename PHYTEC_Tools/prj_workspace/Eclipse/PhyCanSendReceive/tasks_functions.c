@@ -9,6 +9,24 @@
 #include "controller.h"
 #include "timer.h"
 
+static long long execTime_count(struct timespec* timeStartPtr,
+								struct timespec* timeStopPtr)
+{
+	long long cpt_ns, cpt_s;
+
+	cpt_s = (timeStopPtr->tv_sec - timeStartPtr->tv_sec) * NANO_IN_SEC;
+	if (timeStopPtr->tv_nsec > timeStartPtr->tv_nsec)
+	{
+		cpt_ns = timeStopPtr->tv_nsec - timeStartPtr->tv_nsec;
+	}
+	else
+	{
+		cpt_s -= NANO_IN_SEC;
+		cpt_ns = NANO_IN_SEC + timeStopPtr->tv_nsec - timeStartPtr->tv_nsec;
+	}
+	return (cpt_s + cpt_ns);
+}
+
 static double calcExecTime(CanHandler* ch,
 						   ssize_t (*fn)(CanHandler*),
 						   int it_cnt)
@@ -47,29 +65,13 @@ static double calcExecTime(CanHandler* ch,
 	return (double)acc / it_cnt;
 }
 
-static long long execTime_count(struct timespec* timeStartPtr,
-								struct timespec* timeStopPtr)
-{
-	long long cpt_ns, cpt_s;
 
-	cpt_s = (timeStopPtr->tv_sec - timeStartPtr->tv_sec) * NANO_IN_SEC;
-	if (timeStopPtr->tv_nsec > timeStartPtr->tv_nsec)
-	{
-		cpt_ns = timeStopPtr->tv_nsec - timeStartPtr->tv_nsec;
-	}
-	else
-	{
-		cpt_s -= NANO_IN_SEC;
-		cpt_ns = NANO_IN_SEC + timeStopPtr->tv_nsec - timeStartPtr->tv_nsec;
-	}
-	return (cpt_s + cpt_ns);
-}
 
 int sendNReceiveTime(CanHandler* ch, int it_cnt)
 {
 	double execTime;
 
-	sendInt32(ch, it_cnt + 1); //+1 for cache warm up
+	sendInt(ch, it_cnt + 1); //+1 for cache warm up
 
 	execTime = calcExecTime(ch, sendNReceive, it_cnt);
 
@@ -181,6 +183,7 @@ static void controlRiddleImpl(CanHandler* ch, double out_ref)
 	send2ints(ch, ctrl, ctrl);
 
 //	printf("RMS: %f\tcontrol: %d\n", rms, ctrl);
+	printf("%f\n", rms);
 
 	diff += (rms - ROUT_REF) * (rms - ROUT_REF);
 }

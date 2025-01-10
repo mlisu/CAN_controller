@@ -8,7 +8,7 @@
 // common simulation parameters:
 #define SIM_DATA_VEC_LEN_MAX	50000
 #define OUT_FILE_NAME			"system_response.csv"
-#define X_LEN					4 		// vector of state variables length 4 for suspension, 6 for riddle
+#define X_LEN					6 		// vector of state variables length 4 for suspension, 6 for riddle
 #define SIM_STEP				0.010 	// 10 ms
 #define INIT_STATE 				0		// initial state of the system output
 
@@ -21,7 +21,7 @@
 #define SIN_W					3.1416/4 // rad/s - sinus disturbance angular frequency
 #define TR_T					1		 // s - transient time after disturbance f change
 #define FIRST_F					2		 // Hz - starting disturbance f
-#define LAST_F					3		 // Hz
+#define LAST_F					25		 // Hz
 #define F_STEP					0.1		 // Hz
 
 // suspension parameters:
@@ -79,7 +79,8 @@ typedef struct
 	Params* params;	 // incoming parameters like disturbance
 
 	float* data_vec1;
-	float* data_vec2;	 // vector for disturbance data
+	float* data_vec2;	 // vector for disturbance data (by syspension)
+	float* data_vec3;	 // vector for control
 	float* t_vec;	 // time vector - can be removed; it will be 0.1, 0.2, 0.3 ...
 
 	FILE* f;

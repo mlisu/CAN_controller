@@ -8,18 +8,23 @@ double PIDoutput(double input, double out_ref)
 {
 	static double const A = (double)KCP*TC/TCI;
 	static double const B = (double)KCP*TCD/TC;
-	static double err[2] = {0.0, 0.0};
+	static double err_prev = 0.0;
 	static double I = 0.0;
 	double i;
 	double out;
+	double err;
 
-	err[0] = out_ref - input;
-	i = A*err[0];
+	err = out_ref - input;
+	printf("err: %f\t", err);
+	printf("I: %f\t", I);
+	i = A*err;
+	printf("i: %f\t", i);
 	I += i;
 
-	out = KCP * err[0] + B * (err[0] - err[1]) + I;
-
-	err[1] = err[0];
+	out = KCP * err + B * (err - err_prev) + I;
+//	printf("out: %f\tI: %f\n", out, I);
+	printf("out: %f\n", out);
+	err_prev = err;
 
 	if (out >  MAX_OUT)
 	{
@@ -43,8 +48,8 @@ int riddleControl(double input, double out_ref)
 
 	double const err = input - out_ref; // inversed
 	double const I = A*(err + err_prev);
-
-	out += RKP*(err - err_prev) + I + 0.5;
+//	printf("out: %d\n", out);
+	out += RKP*(err - err_prev) + I + 0.5; // rounding
 	err_prev = err;
 
 	if (out > RMAX_OUT)
