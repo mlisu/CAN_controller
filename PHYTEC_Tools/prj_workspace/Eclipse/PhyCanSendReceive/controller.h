@@ -5,10 +5,10 @@
 #define TC		0.01		//s; controller cycle time
 
 // params for suspension control (PID):
-#define KCP		40000	// gain
-#define TCI		4		// integral time constant
+#define KCP		135000	// gain
+#define TCI		17		// integral time constant
 #define TCD		0.25	// derivative time constant
-#define MAX_OUT 3000	// N
+#define MAX_OUT 2700	// N
 #define OUT_REF 0
 
 // riddle controller params

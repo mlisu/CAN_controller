@@ -15,15 +15,15 @@ double PIDoutput(double input, double out_ref)
 	double err;
 
 	err = out_ref - input;
-	printf("err: %f\t", err);
-	printf("I: %f\t", I);
+//	printf("err: %f\t", err);
+//	printf("I: %f\t", I);
 	i = A*err;
-	printf("i: %f\t", i);
+//	printf("i: %f\t", i);
 	I += i;
 
 	out = KCP * err + B * (err - err_prev) + I;
-//	printf("out: %f\tI: %f\n", out, I);
-	printf("out: %f\n", out);
+//	printf("out: %f\tP: %f\tI: %f\t D: %f\n", out, KCP*err, I, B * (err - err_prev));
+//	printf("out: %f\n", out);
 	err_prev = err;
 
 	if (out >  MAX_OUT)

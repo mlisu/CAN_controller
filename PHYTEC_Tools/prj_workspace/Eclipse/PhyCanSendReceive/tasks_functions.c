@@ -142,12 +142,16 @@ void sendPeriodically(CanHandler* ch)
 	}
 }
 
+static double diff = 0.0;
+
 static void controlSuspensionImpl(CanHandler* ch, double out_ref)
 {
-	sendDouble(ch, PIDoutput(readDouble(ch), out_ref));
+	double input = readDouble(ch);
+	sendDouble(ch, PIDoutput(input, out_ref));
+	diff += input*input;
 }
 
-int printIf(int condition)
+static int printIf(int condition)
 {
 	if(condition)
 	{
@@ -156,7 +160,7 @@ int printIf(int condition)
 	return condition;
 }
 
-static double diff = 0.0;
+
 
 static void controlRiddleImpl(CanHandler* ch, double out_ref)
 {
@@ -216,7 +220,9 @@ static void control(CanHandler* ch,
 			memset(stdin_buf, 0, 20);
 		}
 	}
-	printf("sum diff: %f\n", diff);
+//	printf("sum diff: %f\n", diff);
+//	printf("KCP: %d\n", KCP);
+	printf("sum diff: %f\tTCD: %f\n", diff, TCD);
 }
 
 void controlSuspension(CanHandler* ch)

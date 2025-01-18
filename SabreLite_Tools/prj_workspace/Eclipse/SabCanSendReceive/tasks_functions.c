@@ -223,7 +223,10 @@ int runSimulation(CanHandler* ch)
 
 	for (i = 0; i < f_nr; i++)
 	{
-		t_end = sim.t + 10/f + TR_T;
+		printf("f: %f\tsim_cnt: %d\tsim.t: %f\n", f, sim.cnt, sim.t);
+//		t_end = sim.t + 10/f + TR_T;
+		t_end = 5; // uncomment for controller params comparision
+		f_nr  = 1; // uncomment for controller params comparision
 		params.data_dbl[UF_IDX] = f;
 		while (sim.t < t_end)
 		{
