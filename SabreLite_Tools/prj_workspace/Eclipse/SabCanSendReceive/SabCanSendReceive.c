@@ -24,8 +24,8 @@ int main(int argc, char *argv[])
 //	readPeriodically(&ch);
 
 		/* Task 3 - simulation - run Phy first */
-	runSimulation(&ch);
-//	runRiddleSimulation(&ch);
+//	runSimulation(&ch);
+	runRiddleSimulation(&ch);
 
 	// close program:
 	closeCanHandler(&ch);

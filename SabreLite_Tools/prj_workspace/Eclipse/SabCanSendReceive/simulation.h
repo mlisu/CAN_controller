@@ -8,7 +8,7 @@
 // common simulation parameters:
 #define SIM_DATA_VEC_LEN_MAX	50000
 #define OUT_FILE_NAME			"system_response.csv"
-#define X_LEN					4 		// vector of state variables length 4 for suspension, 6 for riddle
+#define X_LEN					6 		// vector of state variables length 4 for suspension, 6 for riddle
 #define SIM_STEP				0.010 	// 10 ms
 #define INIT_STATE 				0		// initial state of the system output
 
@@ -63,7 +63,7 @@
 typedef struct
 {
 	int data_int[2];
-	double data_dbl[4];
+	double data_dbl[6];
 } Params;
 
 typedef struct
@@ -86,17 +86,6 @@ typedef struct
 	FILE* f;
 
 } Simulation;
-
-// Data to be sent to / from riddle simulation model (old, to remove probably)
-typedef struct RiddleParams_
-{
-	int cf;			// front active dumper coefficient from controller
-	int cr;			// rear
-	double zsfpp;	// front z-axis distance prime prime (z front acceleration)
-	double zsrpp;	// rear
-
-} RiddleParams;
-
 
 void simDataToFile(Simulation* const sim);
 

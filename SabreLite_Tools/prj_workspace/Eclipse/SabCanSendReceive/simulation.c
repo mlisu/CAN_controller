@@ -90,15 +90,20 @@ int riddleModel(double t, const double x[], double dxdt[], void* params)
 	double const Ms	 = Mcps + Fkfx * (zsf - zs) + Fkrx * (zsr - zs)
 					   -(Fkfz + CFczf)*(xsf - xs) - (Fkrz + CFczr)*(xsr - xs);
 
-	double const Fex = FE*sin(WE*t);
-	double const Fez = FE*cos(WE*t); // angle is 0 when exciter is up
+	double const we = ((Params*)params)->data_dbl[5];
+
+	double const Fex = FE*sin(we*t);
+	double const Fez = FE*cos(we*t); // angle is 0 when exciter is up
+
+	double const ms = ((Params*)params)->data_dbl[3];
+	double const is = ((Params*)params)->data_dbl[4];
 
 	dxdt[0] = xsp;				// xs'
 	dxdt[1] = zsp;				// zs'
 	dxdt[2] = psp;				// ps'
-	dxdt[3] = (Fex + Fsx) / MS;	// xs"
-	dxdt[4] = (Fez + Fsz) / MS;	// zs"
-	dxdt[5] = Ms / IS;			// ps"
+	dxdt[3] = (Fex + Fsx) / ms;	// xs"
+	dxdt[4] = (Fez + Fsz) / ms;	// zs"
+	dxdt[5] = Ms / is;			// ps"
 
 	// Accelerations to be sent to controller:
 	((Params*)params)->data_dbl[0] = dxdt[4] - dxdt[5] * (HSF*sinps + LSF*cosps)
@@ -185,6 +190,7 @@ void deleteSim(Simulation* const sim)
 {
 	free(sim->data_vec1);
 	free(sim->data_vec2);
+	free(sim->data_vec3);
 	free(sim->t_vec);
 }
 

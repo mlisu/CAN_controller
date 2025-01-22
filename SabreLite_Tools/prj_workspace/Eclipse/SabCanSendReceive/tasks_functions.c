@@ -207,7 +207,7 @@ int runSimulation(CanHandler* ch)
 	clock_t t;
 
 	double f = FIRST_F; // disturbance frequency, Hz
-	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0}};
+	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
 	Simulation sim;
 	double t_end;
 
@@ -279,9 +279,9 @@ static void send2WithIds(CanHandler* ch, Params* params)
 {
 	static long long i = 0;
 	ch->inOutCanFrame.can_id = i++;
-	sendDouble(ch, (*params).data_dbl[0]);
+	sendDouble(ch, params->data_dbl[0]);
 	ch->inOutCanFrame.can_id = i++;
-	sendDouble(ch, (*params).data_dbl[1]);
+	sendDouble(ch, params->data_dbl[1]);
 }
 
 int runRiddleSimulation(CanHandler* ch)
@@ -293,7 +293,7 @@ int runRiddleSimulation(CanHandler* ch)
 	clock_t t;
 	unsigned char first_it = 1;
 
-	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0}};
+	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
 	Simulation sim;
 
 	srand(time(NULL));
@@ -303,6 +303,11 @@ int runRiddleSimulation(CanHandler* ch)
 	pollTimer_config(ch->ufds, TIMER_IDX);
 	pollTimer_set(SIM_STEP*NANO_IN_SEC, SIM_STEP*NANO_IN_SEC, ch->ufds, TIMER_IDX);
 
+	params.data_dbl[3] = MS;
+	params.data_dbl[4] = IS;
+	params.data_dbl[5] = WE;
+	params.data_int[0] = 2600;
+	params.data_int[1] = 2600;
 	for (i = 1; i <= (int)(RSIM_STEPS_NR + 0.5); i++)
 	{
 		t = clock();
@@ -316,15 +321,13 @@ int runRiddleSimulation(CanHandler* ch)
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			read2ints(ch, &(params.data_int[0]), &(params.data_int[1]));
-			if(i < 250)
+			// for controller tunning and mass/frequency change
+			if(i >= 250)
 			{
-				params.data_int[0] = 2600;
-				params.data_int[1] = 2600;
-			}
-			else
-			{
-				params.data_int[0] = 600;
-				params.data_int[1] = 600;
+//				params.data_int[0] = 600;		// for tunning
+//				params.data_dbl[3] = 112;		// for mass change
+//				params.data_dbl[4] = 16.13;		// for moment of inertia change
+				params.data_dbl[5] = 2*M_PI*21;
 			}
 
 		}
@@ -337,6 +340,7 @@ int runRiddleSimulation(CanHandler* ch)
 			printf("Control signal has not come.\n");
 			return 1;
 		}
+		printf("i: %d\taccf: %f\taccr: %f\n", i,  params.data_dbl[0], params.data_dbl[1]);
 
 		send2WithIds(ch, &params);
 

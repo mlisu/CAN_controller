@@ -169,6 +169,7 @@ static void controlRiddleImpl(CanHandler* ch, double out_ref)
 	double rms;
 	int ctrl;
 	static long long id = -1;
+	static long long i = 0;
 
 	acc = readDouble(ch);
 
@@ -182,6 +183,8 @@ static void controlRiddleImpl(CanHandler* ch, double out_ref)
 	if(printIf((ch->inOutCanFrame.can_id - id) != 1)) return;
 
 	rms = computeRMS(accf, acc);
+//	printf("RMS: %f\ti: %d\taccf: %f\taccr: %f\n", rms, i, accf, acc);
+//	if(++i > 250) out_ref = 22.0; // for RMS change analysis
 	ctrl = riddleControl(rms, out_ref);
 
 	send2ints(ch, ctrl, ctrl);
@@ -220,9 +223,9 @@ static void control(CanHandler* ch,
 			memset(stdin_buf, 0, 20);
 		}
 	}
-//	printf("sum diff: %f\n", diff);
+	printf("sum diff: %f\n", diff);
 //	printf("KCP: %d\n", KCP);
-	printf("sum diff: %f\tTCD: %f\n", diff, TCD);
+//	printf("sum diff: %f\tTCD: %f\n", diff, TCD);
 }
 
 void controlSuspension(CanHandler* ch)
