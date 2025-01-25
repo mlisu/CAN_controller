@@ -224,9 +224,9 @@ int runSimulation(CanHandler* ch)
 	for (i = 0; i < f_nr; i++)
 	{
 		printf("f: %f\tsim_cnt: %d\tsim.t: %f\n", f, sim.cnt, sim.t);
-//		t_end = sim.t + 10/f + TR_T;
-		t_end = 5; // uncomment for controller params comparision
-		f_nr  = 1; // uncomment for controller params comparision
+		t_end = sim.t + 10/f + TR_T;
+//		t_end = 5; // uncomment for controller params comparision
+//		f_nr  = 1; // uncomment for controller params comparision
 		params.data_dbl[UF_IDX] = f;
 		while (sim.t < t_end)
 		{
@@ -234,7 +234,7 @@ int runSimulation(CanHandler* ch)
 			runSim(&sim);
 
 			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
-			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params.data_dbl[IN_IDX], sim.x[OUT_IDX], params.data_dbl[U_IDX], f, sim.cnt);
+//			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params.data_dbl[IN_IDX], sim.x[OUT_IDX], params.data_dbl[U_IDX], f, sim.cnt);
 			if(printIfExceeded(dt_ms, 1)) return 1;
 
 			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
