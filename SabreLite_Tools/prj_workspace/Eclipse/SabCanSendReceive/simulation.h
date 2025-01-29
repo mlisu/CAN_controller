@@ -9,7 +9,7 @@
 //#define SIM_DATA_VEC_LEN_MAX	50000
 #define SIM_DATA_VEC_LEN_MAX	500000
 #define OUT_FILE_NAME			"system_response.csv"
-#define X_LEN					4 		// vector of state variables length 4 for suspension, 6 for riddle
+#define X_LEN					6 		// vector of state variables length 4 for suspension, 6 for riddle
 #define SIM_STEP				0.010 	// 10 ms
 //#define SIM_STEP				0.005 	// 5 ms
 //#define SIM_STEP				0.003 	// 3 ms
@@ -60,7 +60,7 @@
 #define ZSR0	 HSR
 
 // Riddle simulation params
-#define RSIM_TIME 		5 // s
+#define RSIM_TIME 		50 // s
 #define RSIM_STEPS_NR	(RSIM_TIME / SIM_STEP)
 
 // Data to be sent to / from simulation model:

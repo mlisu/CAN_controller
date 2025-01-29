@@ -177,7 +177,7 @@ static void controlRiddleImpl(CanHandler* ch, double out_ref)
 
 	rms = computeRMS(accf, acc);
 //	printf("RMS: %f\ti: %d\taccf: %f\taccr: %f\n", rms, i, accf, acc);
-//	if(++i > 250) out_ref = 22.0; // for RMS change analysis
+	if(++i >= 2500) out_ref = 22.0; // for RMS change analysis
 	ctrl = riddleControl(rms, out_ref);
 
 	send2ints(ch, ctrl, ctrl);

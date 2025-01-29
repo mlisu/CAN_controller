@@ -331,10 +331,14 @@ int runRiddleSimulation(CanHandler* ch)
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			read2ints(ch, &(params.data_int[0]), &(params.data_int[1]));
+			// for tunning:
+//			params.data_int[0] = 3500;
+//			params.data_int[1] = 3500;
 			// for controller tunning and mass/frequency change
-//			if(i >= 250)
+//			if(i >= 2500)
 //			{
-////				params.data_int[0] = 600;		// for tunning
+////				params.data_int[0] = 500;		// for tunning
+////				params.data_int[1] = 500;		// for tunning
 ////				params.data_dbl[3] = 112;		// for mass change
 ////				params.data_dbl[4] = 16.13;		// for moment of inertia change
 //				params.data_dbl[5] = 2*M_PI*21;
