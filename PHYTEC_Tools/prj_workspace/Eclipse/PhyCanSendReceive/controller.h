@@ -3,6 +3,9 @@
 
 // common params:
 #define TC		0.01		//s; controller cycle time
+//#define TC		0.005		//s; controller cycle time
+//#define TC		0.003		//s; controller cycle time
+//#define TC		0.001		//s; controller cycle time
 
 // params for suspension control (PID):
 #define KCP		135000	// gain

@@ -47,6 +47,66 @@ static int checkFramesBuf(char* buf, int frame_nr)
 	return result;
 }
 
+static float ticksToMs(clock_t ticks)
+{
+	return (float)ticks / CLOCKS_PER_SEC * 1000;
+}
+
+
+//static int waitForPollEvent(CanHandler* ch, int event_type, float wait_ms)
+//{
+//	int endless_wait = wait_ms < -0.5;
+//	clock_t t = clock();
+//	printf("ev type: %d\n", event_type);
+//	while (endless_wait || ticksToMs(clock() - t) <= wait_ms)
+//	{
+////		printf("inside wait for\n");
+//
+//		poll(ch->ufds, event_type + 1, 100);
+//		switch (event_type)
+//		{
+//			case TIMER_IDX:
+//			{
+//				if (ch->ufds[TIMER_IDX].revents & POLLIN)
+//				{
+//					return 1;
+//				}
+//				break;
+//			}
+//			case CAN_IDX:
+//			{
+//				;
+//			}
+//
+//		}
+//
+//
+//		if (ch->ufds[1].revents & POLLIN)
+//		{
+//			return 1;
+//		}
+//		poll(ch->ufds, CAN_IDX + 1, wait_ms);
+//		if (ch->ufds[CAN_IDX].revents & POLLIN)
+//		{
+//			printf("tutaj jestem\n");
+//	//		readInt(ch);
+//			return 1;
+//
+//		}
+//	}
+
+//	poll(ch->ufds, CAN_IDX + 1, wait_ms);
+//	if (ch->ufds[CAN_IDX].revents & POLLIN)
+//	{
+//		printf("tutaj jestem\n");
+////		readInt(ch);
+//		return 1;
+//
+//	}
+
+//	return 0;
+//}
+
 static void emptyCanBuffer(CanHandler* ch, int wait_ms)
 {
 	/*
@@ -151,10 +211,7 @@ int readPeriodically(CanHandler* ch)
 	return 0;
 }
 
-static float ticksToMs(clock_t ticks)
-{
-	return (float)ticks / CLOCKS_PER_SEC * 1000;
-}
+
 
 static int* allocateArray(int cnt)
 {
@@ -181,12 +238,28 @@ static void computeRMSratio(Simulation* sim, int* indices, int cnt)
 			rms[0] += sim->data_vec1[j] * sim->data_vec1[j]; // signal
 			rms[1] += sim->data_vec2[j] * sim->data_vec2[j]; // disturbance
 		}
-		printf("f: %f\trms ratio: %f\n", f, sqrt(rms[0] / rms[1]));
+//		printf("f: %f\trms ratio: %f\n", f, sqrt(rms[0] / rms[1]));
+//		printf("%f\n", sqrt(rms[0] / rms[1]));
 		rms[0] = 0.0;
 		rms[1] = 0.0;
 		f += F_STEP;
 	}
 }
+
+//static int timeExceeded(clock_t* t_prev)
+//{
+//	clock_t t = clock();
+//
+////	printf("%f\n", ticksToMs(t - *t_prev));
+//	if(ticksToMs(t - *t_prev) > 990*SIM_STEP) // 99% SIM_STEP in ms
+//	{
+//		printf("Simulation step took longer than 99%% SIM_STEP\n");
+//		return 1;
+//	}
+//
+//	*t_prev = t;
+//	return 0;
+//}
 
 static int printIfExceeded(float t, float limit)
 {
@@ -196,6 +269,28 @@ static int printIfExceeded(float t, float limit)
 		return 1;
 	}
 	return 0;
+}
+
+static int timeExceeded(CanHandler* ch)
+{
+	poll(ch->ufds, TIMER_IDX + 1, 0);
+	if (ch->ufds[TIMER_IDX].revents & POLLIN)
+	{
+		printf("tutaj\n");
+		return 1;
+	}
+	return 0;
+}
+
+static void waitForTimerAndRead(CanHandler* ch)
+{
+	long long expTmp;
+
+	poll(ch->ufds, TIMER_IDX + 1, -1);
+	if (ch->ufds[TIMER_IDX].revents & POLLIN)
+	{
+		read(ch->ufds[TIMER_IDX].fd, &expTmp, sizeof(long long));
+	}
 }
 
 int runSimulation(CanHandler* ch)
@@ -230,38 +325,34 @@ int runSimulation(CanHandler* ch)
 		params.data_dbl[UF_IDX] = f;
 		while (sim.t < t_end)
 		{
-			t = clock();
 			runSim(&sim);
 
-			dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
 //			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params.data_dbl[IN_IDX], sim.x[OUT_IDX], params.data_dbl[U_IDX], f, sim.cnt);
-			if(printIfExceeded(dt_ms, 1)) return 1;
 
-			poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
+			if(first_it)
+			{
+				first_it = 0;
+				sendDouble(ch, params.data_dbl[OUT_IDX]);
+				waitForTimerAndRead(ch);
+				continue;
+			}
+
+			poll(ch->ufds, CAN_IDX + 1, -1);
 			if (ch->ufds[CAN_IDX].revents & POLLIN)
 			{
 				params.data_dbl[IN_IDX] = readDouble(ch);
 			}
-			else if(first_it)
-			{
-				first_it = 0;
-			}
-			else
-			{
-				printf("Control signal has not come.\n");
-				return 1;
-			}
 
 			sendDouble(ch, params.data_dbl[OUT_IDX]);
-
-			if(printIfExceeded(SIM_STEP * 1000 - ticksToMs(clock() - t), 0.5))
+			// sprawdzić na całym zakresie f
+			if(timeExceeded(ch) && !first_it) // first iteration takes longer (needed for sample times < 10 ms)
 			{
 				return 1;
 			}
 
-			poll(ch->ufds, TIMER_IDX + 1, -1);
-			tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
+			waitForTimerAndRead(ch);
 		}
+
 		indices[i] = sim.cnt;
 		f += F_STEP;
 	}
@@ -289,8 +380,7 @@ int runRiddleSimulation(CanHandler* ch)
 	assert(RSIM_STEPS_NR < SIM_DATA_VEC_LEN_MAX);
 	int i = 0;
 	long long expTmp;
-	float dt_ms;
-	clock_t t;
+	clock_t t_prev;
 	unsigned char first_it = 1;
 
 	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
@@ -308,49 +398,47 @@ int runRiddleSimulation(CanHandler* ch)
 	params.data_dbl[5] = WE;
 	params.data_int[0] = 2600;
 	params.data_int[1] = 2600;
+
+	t_prev = clock();
+
 	for (i = 1; i <= (int)(RSIM_STEPS_NR + 0.5); i++)
 	{
-		t = clock();
 		runSim(&sim);
 
-		dt_ms = SIM_STEP * 1000 - ticksToMs(clock() - t);
+		if(first_it)
+		{
+			first_it = 0;
+			send2WithIds(ch, &params);
+			waitForTimerAndRead(ch);
+			continue;
+		}
 
-		if(printIfExceeded(dt_ms, 1)) return 1;
-
-		poll(ch->ufds, CAN_IDX + 1, dt_ms * 0.9);
+		poll(ch->ufds, CAN_IDX + 1, -1);
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			read2ints(ch, &(params.data_int[0]), &(params.data_int[1]));
 			// for controller tunning and mass/frequency change
-			if(i >= 250)
-			{
-//				params.data_int[0] = 600;		// for tunning
-//				params.data_dbl[3] = 112;		// for mass change
-//				params.data_dbl[4] = 16.13;		// for moment of inertia change
-				params.data_dbl[5] = 2*M_PI*21;
-			}
+//			if(i >= 250)
+//			{
+////				params.data_int[0] = 600;		// for tunning
+////				params.data_dbl[3] = 112;		// for mass change
+////				params.data_dbl[4] = 16.13;		// for moment of inertia change
+//				params.data_dbl[5] = 2*M_PI*21;
+//			}
 
 		}
-		else if(first_it)
-		{
-			first_it = 0;
-		}
-		else
-		{
-			printf("Control signal has not come.\n");
-			return 1;
-		}
-		printf("i: %d\taccf: %f\taccr: %f\n", i,  params.data_dbl[0], params.data_dbl[1]);
+//		printf("i: %d\taccf: %f\taccr: %f\n", i,  params.data_dbl[0], params.data_dbl[1]);
+		printf("c: %d\n", params.data_int[0]);
 
 		send2WithIds(ch, &params);
 
-		if(printIfExceeded(SIM_STEP * 1000 - ticksToMs(clock() - t), 0.5))
+		if(timeExceeded(ch))
 		{
 			return 1;
 		}
 
-		poll(ch->ufds, TIMER_IDX + 1, -1);
-		tryReadTimer(&ch->ufds[TIMER_IDX], &expTmp);
+		waitForTimerAndRead(ch);
+
 	}
 
 	simDataToFile(&sim);

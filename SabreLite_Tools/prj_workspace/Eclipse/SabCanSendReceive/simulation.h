@@ -7,9 +7,13 @@
 
 // common simulation parameters:
 #define SIM_DATA_VEC_LEN_MAX	50000
+//#define SIM_DATA_VEC_LEN_MAX	500000
 #define OUT_FILE_NAME			"system_response.csv"
 #define X_LEN					6 		// vector of state variables length 4 for suspension, 6 for riddle
 #define SIM_STEP				0.010 	// 10 ms
+//#define SIM_STEP				0.005 	// 5 ms
+//#define SIM_STEP				0.003 	// 3 ms
+//#define SIM_STEP				0.001 	// 1 ms
 #define INIT_STATE 				0		// initial state of the system output
 
 // suspension sim params
@@ -21,7 +25,7 @@
 #define SIN_W					3.1416/4 // rad/s - sinus disturbance angular frequency
 #define TR_T					1		 // s - transient time after disturbance f change
 #define FIRST_F					2		 // Hz - starting disturbance f
-#define LAST_F					25		 // Hz
+#define LAST_F					2		 // Hz
 #define F_STEP					0.1		 // Hz
 
 // suspension parameters:
