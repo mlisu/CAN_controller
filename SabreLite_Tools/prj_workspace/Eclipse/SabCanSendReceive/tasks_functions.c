@@ -47,70 +47,10 @@ static int checkFramesBuf(char* buf, int frame_nr)
 	return result;
 }
 
-static float ticksToMs(clock_t ticks)
-{
-	return (float)ticks / CLOCKS_PER_SEC * 1000;
-}
-
-
-//static int waitForPollEvent(CanHandler* ch, int event_type, float wait_ms)
-//{
-//	int endless_wait = wait_ms < -0.5;
-//	clock_t t = clock();
-//	printf("ev type: %d\n", event_type);
-//	while (endless_wait || ticksToMs(clock() - t) <= wait_ms)
-//	{
-////		printf("inside wait for\n");
-//
-//		poll(ch->ufds, event_type + 1, 100);
-//		switch (event_type)
-//		{
-//			case TIMER_IDX:
-//			{
-//				if (ch->ufds[TIMER_IDX].revents & POLLIN)
-//				{
-//					return 1;
-//				}
-//				break;
-//			}
-//			case CAN_IDX:
-//			{
-//				;
-//			}
-//
-//		}
-//
-//
-//		if (ch->ufds[1].revents & POLLIN)
-//		{
-//			return 1;
-//		}
-//		poll(ch->ufds, CAN_IDX + 1, wait_ms);
-//		if (ch->ufds[CAN_IDX].revents & POLLIN)
-//		{
-//			printf("tutaj jestem\n");
-//	//		readInt(ch);
-//			return 1;
-//
-//		}
-//	}
-
-//	poll(ch->ufds, CAN_IDX + 1, wait_ms);
-//	if (ch->ufds[CAN_IDX].revents & POLLIN)
-//	{
-//		printf("tutaj jestem\n");
-////		readInt(ch);
-//		return 1;
-//
-//	}
-
-//	return 0;
-//}
-
 static void emptyCanBuffer(CanHandler* ch, int wait_ms)
 {
 	/*
-	 * Assumption that if WAIT_MS == 300 ms has passed without receiving a frame,
+	 * Assumption that if wait_ms ms has passed without receiving a frame,
 	 * then the can buffer is empty
 	 */
 	while (1)
@@ -246,31 +186,10 @@ static void computeRMSratio(Simulation* sim, int* indices, int cnt)
 	}
 }
 
-//static int timeExceeded(clock_t* t_prev)
-//{
-//	clock_t t = clock();
-//
-////	printf("%f\n", ticksToMs(t - *t_prev));
-//	if(ticksToMs(t - *t_prev) > 990*SIM_STEP) // 99% SIM_STEP in ms
-//	{
-//		printf("Simulation step took longer than 99%% SIM_STEP\n");
-//		return 1;
-//	}
-//
-//	*t_prev = t;
-//	return 0;
-//}
-
-static int printIfExceeded(float t, float limit)
-{
-	if(t < limit)
-	{
-		printf("Simulation step took longer than (SIM_STEP - %f ms)\n", limit);
-		return 1;
-	}
-	return 0;
-}
-
+/*
+ * timeExceeded checks if there already is a timer event. If so,
+ * it means that the time period to which the timer is set, has passed
+ */
 static int timeExceeded(CanHandler* ch)
 {
 	poll(ch->ufds, TIMER_IDX + 1, 0);
@@ -297,9 +216,6 @@ int runSimulation(CanHandler* ch)
 {
 	int i;
 	int first_it = 1;
-	long long int expTmp;
-	float dt_ms;
-	clock_t t;
 
 	double f = FIRST_F; // disturbance frequency, Hz
 	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
@@ -319,15 +235,17 @@ int runSimulation(CanHandler* ch)
 	for (i = 0; i < f_nr; i++)
 	{
 		printf("f: %f\tsim_cnt: %d\tsim.t: %f\n", f, sim.cnt, sim.t);
-		t_end = sim.t + 10/f + TR_T;
-//		t_end = 5; // uncomment for controller params comparision
-//		f_nr  = 1; // uncomment for controller params comparision
+//		t_end = sim.t + 10/f + TR_T;
+		t_end = 5; // uncomment for controller params comparision
+		f_nr  = 1; // uncomment for controller params comparision
 		params.data_dbl[UF_IDX] = f;
 		while (sim.t < t_end)
 		{
 			runSim(&sim);
 
-//			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n", sim.t, params.data_dbl[IN_IDX], sim.x[OUT_IDX], params.data_dbl[U_IDX], f, sim.cnt);
+			// uncomment to print diagnostics data:
+//			printf("time: %f\tF: %f\tout: %f\tu: %f\tf: %f\tcnt: %d\n",
+//					sim.t, params.data_dbl[IN_IDX], sim.x[OUT_IDX], params.data_dbl[U_IDX], f, sim.cnt);
 
 			if(first_it)
 			{
@@ -379,8 +297,6 @@ int runRiddleSimulation(CanHandler* ch)
 {
 	assert(RSIM_STEPS_NR < SIM_DATA_VEC_LEN_MAX);
 	int i = 0;
-	long long expTmp;
-	clock_t t_prev;
 	unsigned char first_it = 1;
 
 	Params params = {{0, 0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
@@ -398,8 +314,6 @@ int runRiddleSimulation(CanHandler* ch)
 	params.data_dbl[5] = WE;
 	params.data_int[0] = 2600;
 	params.data_int[1] = 2600;
-
-	t_prev = clock();
 
 	for (i = 1; i <= (int)(RSIM_STEPS_NR + 0.5); i++)
 	{
@@ -428,7 +342,7 @@ int runRiddleSimulation(CanHandler* ch)
 
 		}
 //		printf("i: %d\taccf: %f\taccr: %f\n", i,  params.data_dbl[0], params.data_dbl[1]);
-		printf("c: %d\n", params.data_int[0]);
+//		printf("c: %d\n", params.data_int[0]);
 
 		send2WithIds(ch, &params);
 

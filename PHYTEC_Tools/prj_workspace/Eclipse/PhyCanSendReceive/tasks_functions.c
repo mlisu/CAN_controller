@@ -151,17 +151,6 @@ static void controlSuspensionImpl(CanHandler* ch, double out_ref)
 	diff += input*input;
 }
 
-static int printIf(int condition)
-{
-	if(condition)
-	{
-		printf("Broken frames order, skipping control signal\n");
-	}
-	return condition;
-}
-
-
-
 static void controlRiddleImpl(CanHandler* ch, double out_ref)
 {
 	static double accf = 0.0;
@@ -180,7 +169,11 @@ static void controlRiddleImpl(CanHandler* ch, double out_ref)
 		return;
 	}
 
-	if(printIf((ch->inOutCanFrame.can_id - id) != 1)) return;
+	if((ch->inOutCanFrame.can_id - id) != 1)
+	{
+		printf("Broken frames order, skipping control signal\n");
+		return;
+	}
 
 	rms = computeRMS(accf, acc);
 //	printf("RMS: %f\ti: %d\taccf: %f\taccr: %f\n", rms, i, accf, acc);

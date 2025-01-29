@@ -23,8 +23,8 @@ int main(int argc, char *argv[])
 //	sendPeriodically(&ch);
 
 		/* Task 3 - control - run Phy first */
-//	controlSuspension(&ch);
-	controlRiddle(&ch);
+	controlSuspension(&ch);
+//	controlRiddle(&ch);
 
 	// close program:
 	closeCanHandler(&ch);
