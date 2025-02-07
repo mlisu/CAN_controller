@@ -16,8 +16,6 @@
 
 // riddle controller params
 #define SAMPLS   21		// samples number to compute RMS
-//#define RKP		 1000	// gain
-//#define RTI		 0.1	// integral time constant
 
 #define RKP		 1900	// gain
 #define RTI		 0.12	// integral time constant

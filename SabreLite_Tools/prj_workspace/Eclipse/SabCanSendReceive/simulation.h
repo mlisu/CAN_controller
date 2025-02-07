@@ -25,7 +25,7 @@
 #define SIN_W					3.1416/4 // rad/s - sinus disturbance angular frequency
 #define TR_T					1		 // s - transient time after disturbance f change
 #define FIRST_F					2		 // Hz - starting disturbance f
-#define LAST_F					2.2		 // Hz
+#define LAST_F					25		 // Hz
 #define F_STEP					0.1		 // Hz
 
 // suspension parameters:
@@ -80,12 +80,13 @@ typedef struct
 	double t_end;	 // end of simulation step
 	double dt;		 // simulation step
 	double x[X_LEN]; // vector of state variables
-	Params* params;	 // incoming parameters like disturbance
+	Params* params;	 // incoming parameters like disturbance frequency, control
 
+	// data vectors to be saved to an output file:
 	float* data_vec1;
-	float* data_vec2;	 // vector for disturbance data (by syspension)
-	float* data_vec3;	 // vector for control
-	float* t_vec;	 // time vector - can be removed; it will be 0.1, 0.2, 0.3 ...
+	float* data_vec2;
+	float* data_vec3;
+	float* t_vec;	 	 // time vector
 
 	FILE* f;
 

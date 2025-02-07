@@ -15,6 +15,15 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	/*
+	 * To run program uncomment one of the following:
+	 * - sendNReceiveTime(&ch, 10000);
+	 * - sendPeriodically(&ch);
+	 * - controlSuspension(&ch);
+	 * - controlRiddle(&ch);
+	 * while keeping the others commented out
+	 */
+
 	// perform task:
 		// Task 1 - time measure.
 //	sendNReceiveTime(&ch, 10000);

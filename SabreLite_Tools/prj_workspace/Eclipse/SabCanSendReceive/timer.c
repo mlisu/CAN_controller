@@ -41,12 +41,3 @@ int pollTimer_set(const long long tValueNs,
 
         return 0;
 }
-
-void tryReadTimer(struct pollfd* ufd, long long* expTmp)
-{
-	if (ufd->revents & POLLIN)
-	{
-		read(ufd->fd, expTmp, sizeof(long long));
-	}
-}
-

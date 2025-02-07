@@ -1,5 +1,5 @@
-#ifndef CAN_HANDLER_SAB_H_
-#define CAN_HANDLER_SAB_H_
+#ifndef CAN_HANDLER_H_
+#define CAN_HANDLER_H_
 
 #include <linux/can.h>
 #include <stddef.h> //size_t
@@ -38,4 +38,4 @@ void sendInt(CanHandler* ch, int data_in);
 void sendDouble(CanHandler* ch, double data_in);
 ssize_t canWrite(CanHandler* ch);
 
-#endif /* CAN_HANDLER_SAB_H_ */
+#endif /* CAN_HANDLER_H_ */

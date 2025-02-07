@@ -114,10 +114,8 @@ void sendPeriodically(CanHandler* ch)
 		}
 		if (ch->ufds[0].revents & POLLIN)
 		{
-//			printf("%d\n", readInt32(ch));
 			readCan(ch); // Sabre told to stop sending
 			frame_nr = 0;
-//			printf("%d\n", readInt32(ch));
 			readCan(ch); // Sabre told that it cleaned the CAN buffer
 
 		}
@@ -142,7 +140,9 @@ void sendPeriodically(CanHandler* ch)
 	}
 }
 
+// squares error sums for control quality measure
 static double diff = 0.0;
+static double diff2 = 0.0;
 
 static void controlSuspensionImpl(CanHandler* ch, double out_ref)
 {
@@ -176,13 +176,13 @@ static void controlRiddleImpl(CanHandler* ch, double out_ref)
 	}
 
 	rms = computeRMS(accf, acc);
-//	printf("RMS: %f\ti: %d\taccf: %f\taccr: %f\n", rms, i, accf, acc);
-	if(++i >= 2500) out_ref = 22.0; // for RMS change analysis
+//	if(++i >= 2500) out_ref = 22.0; // for RMS change analysis
+//	if(++i >= 4000 && i <= 4500) diff2 += (rms - ROUT_REF) * (rms - ROUT_REF); // for different window analysis
+
 	ctrl = riddleControl(rms, out_ref);
 
 	send2ints(ch, ctrl, ctrl);
-
-//	printf("RMS: %f\tcontrol: %d\n", rms, ctrl);
+	// print data for analysis. Stdout can be redirected to a file by program execution
 	printf("%f\n", rms);
 
 	diff += (rms - ROUT_REF) * (rms - ROUT_REF);
@@ -217,8 +217,7 @@ static void control(CanHandler* ch,
 		}
 	}
 	printf("sum diff: %f\n", diff);
-//	printf("KCP: %d\n", KCP);
-//	printf("sum diff: %f\tTCD: %f\n", diff, TCD);
+	printf("sum diff2: %f\n", diff2);
 }
 
 void controlSuspension(CanHandler* ch)

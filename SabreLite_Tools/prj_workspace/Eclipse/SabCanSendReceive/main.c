@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 
-#include "can_handler_sab.h"
+#include "can_handler.h"
 #include "tasks_functions.h"
 
 int main(int argc, char *argv[])
@@ -13,6 +13,15 @@ int main(int argc, char *argv[])
 		printf("Failed to initialize CanHandler! Aborting!\n");
 		return -1;
 	}
+
+	/*
+	 * To run program uncomment one of the following:
+	 * - echo4sendNReceiveTime(&ch);
+	 * - readPeriodically(&ch);
+	 * - runSimulation(&ch);
+	 * - runRiddleSimulation(&ch);
+	 * while keeping the others commented out
+	 */
 
 	// perform task:
 		/* Task 1 - time measure. Run program first on Sabre then Phy,

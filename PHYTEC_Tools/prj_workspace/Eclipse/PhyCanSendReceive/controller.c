@@ -15,15 +15,11 @@ double PIDoutput(double input, double out_ref)
 	double err;
 
 	err = out_ref - input;
-//	printf("err: %f\t", err);
-//	printf("I: %f\t", I);
 	i = A*err;
-//	printf("i: %f\t", i);
 	I += i;
 
 	out = KCP * err + B * (err - err_prev) + I;
-//	printf("out: %f\tP: %f\tI: %f\t D: %f\n", out, KCP*err, I, B * (err - err_prev));
-//	printf("out: %f\n", out);
+
 	err_prev = err;
 
 	if (out >  MAX_OUT)
@@ -44,12 +40,12 @@ int riddleControl(double input, double out_ref)
 {
 	static double const A = (double)RKP*TC/RTI/2;
 	static double err_prev = 0.0;
-	static int out = 0.0;
+	static double out = 0.0;
 
 	double const err = input - out_ref; // inversed
 	double const I = A*(err + err_prev);
-//	printf("out: %d\n", out);
-	out += RKP*(err - err_prev) + I + 0.5; // rounding
+
+	out += RKP*(err - err_prev) + I;
 	err_prev = err;
 
 	if (out > RMAX_OUT)
@@ -63,7 +59,7 @@ int riddleControl(double input, double out_ref)
 		return 0;
 	}
 
-	return out;
+	return out + 0.5; // 0.5 for rounding
 }
 
 double computeRMS(double acc_front, double acc_rear)
@@ -90,7 +86,7 @@ double computeRMS(double acc_front, double acc_rear)
 	{
 		insert_idx = 0;
 	}
-//	printf("sum: %f\trmss[insert_idx]: %f\tsqrt: %f\n", sum, rmss[insert_idx], sqrt(sum / in_buf));
+
 	return sqrt(sum / in_buf);
 }
 

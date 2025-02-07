@@ -15,6 +15,4 @@ int pollTimer_set(const long long tValueNs,
 				  struct pollfd * ufds,
 				  int ufds_idx);
 
-void tryReadTimer(struct pollfd* ufd, long long int* expTmp);
-
 #endif /* TIMER_H_ */

@@ -178,8 +178,8 @@ static void computeRMSratio(Simulation* sim, int* indices, int cnt)
 			rms[0] += sim->data_vec1[j] * sim->data_vec1[j]; // signal
 			rms[1] += sim->data_vec2[j] * sim->data_vec2[j]; // disturbance
 		}
-//		printf("f: %f\trms ratio: %f\n", f, sqrt(rms[0] / rms[1]));
-//		printf("%f\n", sqrt(rms[0] / rms[1]));
+		// print data for analysis. Stdout can be redirected to a file by program execution
+		printf("%f\n", sqrt(rms[0] / rms[1]));
 		rms[0] = 0.0;
 		rms[1] = 0.0;
 		f += F_STEP;
@@ -195,7 +195,7 @@ static int timeExceeded(CanHandler* ch)
 	poll(ch->ufds, TIMER_IDX + 1, 0);
 	if (ch->ufds[TIMER_IDX].revents & POLLIN)
 	{
-		printf("tutaj\n");
+		printf("Time exceeded\n");
 		return 1;
 	}
 	return 0;
@@ -235,9 +235,9 @@ int runSimulation(CanHandler* ch)
 	for (i = 0; i < f_nr; i++)
 	{
 		printf("f: %f\tsim_cnt: %d\tsim.t: %f\n", f, sim.cnt, sim.t);
-//		t_end = sim.t + 10/f + TR_T;
-		t_end = 5; // uncomment for controller params comparision
-		f_nr  = 1; // uncomment for controller params comparision
+		t_end = sim.t + 10/f + TR_T;
+//		t_end = 5; // uncomment for controller params comparision
+//		f_nr  = 1; // uncomment for controller params comparision
 		params.data_dbl[UF_IDX] = f;
 		while (sim.t < t_end)
 		{
@@ -262,8 +262,8 @@ int runSimulation(CanHandler* ch)
 			}
 
 			sendDouble(ch, params.data_dbl[OUT_IDX]);
-			// sprawdzić na całym zakresie f
-			if(timeExceeded(ch) && !first_it) // first iteration takes longer (needed for sample times < 10 ms)
+
+			if(timeExceeded(ch))
 			{
 				return 1;
 			}
@@ -331,22 +331,18 @@ int runRiddleSimulation(CanHandler* ch)
 		if (ch->ufds[CAN_IDX].revents & POLLIN)
 		{
 			read2ints(ch, &(params.data_int[0]), &(params.data_int[1]));
-			// for tunning:
-//			params.data_int[0] = 3500;
-//			params.data_int[1] = 3500;
-			// for controller tunning and mass/frequency change
-//			if(i >= 2500)
-//			{
-////				params.data_int[0] = 500;		// for tunning
-////				params.data_int[1] = 500;		// for tunning
-////				params.data_dbl[3] = 112;		// for mass change
-////				params.data_dbl[4] = 16.13;		// for moment of inertia change
-//				params.data_dbl[5] = 2*M_PI*21;
-//			}
+
+			// for controller mass/frequency change
+			if(i >= 2500) // change occurs in 25s of the simulation
+			{
+				params.data_dbl[3] = 112;		// for mass change
+				params.data_dbl[4] = 16.13;		// for moment of inertia change
+				params.data_dbl[5] = 2*M_PI*21; // for frequency change
+			}
 
 		}
+		// uncomment to print diagnostics data:
 //		printf("i: %d\taccf: %f\taccr: %f\n", i,  params.data_dbl[0], params.data_dbl[1]);
-//		printf("c: %d\n", params.data_int[0]);
 
 		send2WithIds(ch, &params);
 

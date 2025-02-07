@@ -1,11 +1,10 @@
-#include "can_handler_sab.h"
-
 #include <net/if.h>
 #include <stdio.h>
 #include <stdlib.h> // exit
 #include <string.h> //strcpy
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include "can_handler.h"
 
 int initCanHandler(CanHandler* ch)
 {
