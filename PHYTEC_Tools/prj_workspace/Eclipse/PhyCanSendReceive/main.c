@@ -26,14 +26,15 @@ int main(int argc, char *argv[])
 
 	// perform task:
 		// Task 1 - time measure.
-//	sendNReceiveTime(&ch, 10000);
+	sendNReceiveTime(&ch, 10000);
 
 		// Task 2 - send periodically for capacity measurement
+	// after running, input frequency as positive integral number <= 10tys
 //	sendPeriodically(&ch);
 
 		/* Task 3 - control - run Phy first */
 //	controlSuspension(&ch);
-	controlRiddle(&ch);
+//	controlRiddle(&ch);
 
 	// close program:
 	closeCanHandler(&ch);
